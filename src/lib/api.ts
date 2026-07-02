@@ -141,6 +141,108 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Workspace and Membership Interfaces
+export interface Workspace {
+  id: number;
+  name: string;
+  slug: string;
+  created_at: string;
+  created_by?: number;
+}
+
+export interface WorkspaceMember {
+  id: number;
+  workspace: number;
+  user: {
+    id: number;
+    username: string;
+    email: string;
+  };
+  role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'GUEST';
+  joined_at: string;
+}
+
+export interface WorkspaceInvitation {
+  id: number;
+  workspace: number;
+  email: string;
+  invited_by: number;
+  role: string;
+  token: string;
+  created_at: string;
+  expires_at: string;
+  is_accepted: boolean;
+}
+
+export interface Channel {
+  id: number;
+  workspace: number;
+  name: string;
+  description: string;
+  is_private: boolean;
+  created_at: string;
+  created_by?: number;
+}
+
+export interface Topic {
+  id: number;
+  channel: number;
+  title: string;
+  content: string;
+  status: 'ACTIVE' | 'RESOLVED' | 'CLOSED';
+  created_at: string;
+  updated_at: string;
+  created_by?: {
+    id: number;
+    username: string;
+    email: string;
+  };
+  last_reply_at?: string;
+  replies_count?: number;
+}
+
+export interface Reply {
+  id: number;
+  topic: number;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  created_by?: {
+    id: number;
+    username: string;
+    email: string;
+  };
+}
+
+export interface CallSession {
+  id: number;
+  workspace: number;
+  caller: {
+    id: number;
+    username: string;
+    email: string;
+  } | null;
+  receiver: {
+    id: number;
+    username: string;
+    email: string;
+  } | null;
+  status: 'RINGING' | 'CONNECTED' | 'MISSED' | 'REJECTED' | 'COMPLETED';
+  started_at: string | null;
+  ended_at: string | null;
+  duration_seconds: number;
+}
+
+export interface WorkspaceSubscription {
+  workspace: number;
+  tier: 'FREE' | 'PREMIUM';
+  status: 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'UNPAID';
+  auto_renew: boolean;
+  stripe_customer_id?: string;
+  stripe_subscription_id?: string;
+  current_period_end?: string;
+}
+
 export const api = {
   // Auth Operations
   async register(data: RegisterRequest) {
@@ -175,6 +277,93 @@ export const api = {
 
   async googleLogin(data: GoogleLoginRequest) {
     const response = await apiClient.post('/api/users/auth/google/', data);
+    return response.data;
+  },
+
+  // Workspace API Operations
+  async listWorkspaces(): Promise<Workspace[]> {
+    const response = await apiClient.get('/api/workspaces/');
+    return response.data;
+  },
+
+  async createWorkspace(name: string, slug: string): Promise<Workspace> {
+    const response = await apiClient.post('/api/workspaces/', { name, slug });
+    return response.data;
+  },
+
+  async inviteWorkspaceMember(slug: string, email: string, role: string): Promise<WorkspaceInvitation> {
+    const response = await apiClient.post(`/api/workspaces/${slug}/invite/`, { email, role });
+    return response.data;
+  },
+
+  async acceptWorkspaceInvitation(token: string): Promise<{ message: string }> {
+    const response = await apiClient.post('/api/workspaces/accept-invite/', { token });
+    return response.data;
+  },
+
+  async toggleAutopay(slug: string): Promise<WorkspaceSubscription> {
+    const response = await apiClient.post(`/api/workspaces/${slug}/toggle-autopay/`);
+    return response.data;
+  },
+
+  async checkoutSession(slug: string): Promise<{ checkout_url: string }> {
+    const response = await apiClient.post(`/api/workspaces/${slug}/checkout/`);
+    return response.data;
+  },
+
+  // Chats & Channels API Operations
+  async listChannels(workspaceSlug: string): Promise<Channel[]> {
+    const response = await apiClient.get(`/api/chats/workspaces/${workspaceSlug}/channels/`);
+    return response.data;
+  },
+
+  async createChannel(workspaceSlug: string, name: string, description: string, isPrivate: boolean): Promise<Channel> {
+    const response = await apiClient.post(`/api/chats/workspaces/${workspaceSlug}/channels/`, {
+      name,
+      description,
+      is_private: isPrivate
+    });
+    return response.data;
+  },
+
+  async listTopics(channelId: number): Promise<Topic[]> {
+    const response = await apiClient.get(`/api/chats/channels/${channelId}/topics/`);
+    return response.data;
+  },
+
+  async createTopic(channelId: number, title: string, content: string): Promise<Topic> {
+    const response = await apiClient.post(`/api/chats/channels/${channelId}/topics/`, { title, content });
+    return response.data;
+  },
+
+  async listReplies(topicId: number): Promise<Reply[]> {
+    const response = await apiClient.get(`/api/chats/topics/${topicId}/replies/`);
+    return response.data;
+  },
+
+  async createReply(topicId: number, content: string): Promise<Reply> {
+    const response = await apiClient.post(`/api/chats/topics/${topicId}/replies/`, { content });
+    return response.data;
+  },
+
+  // Voice Huddle / WebRTC Call API Operations
+  async listCalls(workspaceSlug: string): Promise<CallSession[]> {
+    const response = await apiClient.get(`/api/calls/workspaces/${workspaceSlug}/calls/`);
+    return response.data;
+  },
+
+  async createCall(workspaceSlug: string, receiverEmail: string): Promise<CallSession> {
+    const response = await apiClient.post(`/api/calls/workspaces/${workspaceSlug}/calls/`, { receiver_email: receiverEmail });
+    return response.data;
+  },
+
+  async acceptCall(sessionId: number): Promise<CallSession> {
+    const response = await apiClient.post(`/api/calls/${sessionId}/accept/`);
+    return response.data;
+  },
+
+  async endCall(sessionId: number): Promise<CallSession> {
+    const response = await apiClient.post(`/api/calls/${sessionId}/end/`);
     return response.data;
   },
 };
