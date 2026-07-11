@@ -14,6 +14,7 @@ import { WorkspaceLayout } from '@/pages/WorkspaceLayout';
 import { ChannelFeed } from '@/pages/ChannelFeed';
 import { DocumentCanvas } from '@/pages/DocumentCanvas';
 import { BillingSettings } from '@/pages/BillingSettings';
+import { GoogleCallback } from '@/pages/GoogleCallback';
 
 function App() {
   return (
@@ -60,6 +61,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAuth={false}>
                     <ResetPassword />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/auth/google/callback"
+                element={
+                  <ProtectedRoute requireAuth={false}>
+                    <GoogleCallback />
                   </ProtectedRoute>
                 }
               />

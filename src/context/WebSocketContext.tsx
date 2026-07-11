@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { getAccessToken } from '@/lib/api';
 
 interface WebSocketContextType {
   isConnected: boolean;
@@ -26,14 +25,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     socket.onopen = () => {
       setIsConnected(true);
       
-      // Perform in-band JWT Authentication
-      const token = getAccessToken();
-      if (token) {
-        socket.send(JSON.stringify({
-          type: 'auth',
-          token: token
-        }));
-      }
+      // In-band JWT Authentication is removed because we rely on HttpOnly cookies sent during handshake.
+      // Assuming backend Channels middleware parses cookies to authenticate the WebSocket.
     };
 
     socket.onmessage = (event) => {

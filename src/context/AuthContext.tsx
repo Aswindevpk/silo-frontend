@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { clearTokens, getAccessToken } from '@/lib/api';
+import { api } from '@/lib/api';
 
 interface User {
   username: string;
@@ -24,15 +24,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initializeAuth = () => {
       try {
-        const token = getAccessToken();
-        const storedUser = localStorage.getItem('user_profile');
-        if (token && storedUser) {
+                const storedUser = localStorage.getItem('user_profile');
+        if (storedUser) {
           setUser(JSON.parse(storedUser));
         }
       } catch (error) {
         console.error('Failed to parse user profile', error);
-        clearTokens();
-        localStorage.removeItem('user_profile');
+                localStorage.removeItem('user_profile');
       } finally {
         setLoading(false);
       }
@@ -51,10 +49,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const logout = () => {
-    clearTokens();
-    localStorage.removeItem('user_profile');
-    setUser(null);
+  const logout = async () => {
+    try {
+      await api.logout();
+    } catch (e) {
+      console.error('Failed to hit backend logout', e);
+    } finally {
+      localStorage.removeItem('user_profile');
+      setUser(null);
+    }
   };
 
   const isAuthenticated = !!user;

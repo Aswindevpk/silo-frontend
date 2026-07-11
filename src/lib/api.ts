@@ -27,39 +27,16 @@ export interface GoogleLoginRequest {
   redirect_uri?: string;
 }
 
-// Token helper helpers
-export const getAccessToken = () => localStorage.getItem('access_token');
-export const getRefreshToken = () => localStorage.getItem('refresh_token');
-export const setTokens = (access: string, refresh: string) => {
-  localStorage.setItem('access_token', access);
-  localStorage.setItem('refresh_token', refresh);
-};
-export const clearTokens = () => {
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('refresh_token');
-};
-
 // Create Axios Instance
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Interceptor for requests: add access token
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = getAccessToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+// Removed manual Authorization header interceptor since cookies are sent automatically
 
 // Interceptor for responses: handle token refresh
 let isRefreshing = false;
@@ -87,17 +64,16 @@ apiClient.interceptors.response.use(
     // Detect 401 Unauthorized and ensure it's not a retry request
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       // If it's a login request, don't attempt to refresh token
-      if (originalRequest.url?.includes('/api/users/login/')) {
+      if (originalRequest.url?.includes('/api/v1/users/login/')) {
         const apiError = error.response?.data?.detail || error.response?.data?.message || error.message;
         return Promise.reject(new Error(apiError));
       }
 
       if (isRefreshing) {
-        return new Promise<string | null>((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
+          .then(() => {
             return apiClient(originalRequest);
           })
           .catch((err) => {
@@ -108,26 +84,13 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refresh = getRefreshToken();
-      if (!refresh) {
-        clearTokens();
-        window.dispatchEvent(new Event('auth-logout'));
-        return Promise.reject(error);
-      }
-
       try {
-        const response = await axios.post(`${API_BASE_URL}/api/users/token/refresh/`, { refresh });
-        const { access } = response.data;
+        await axios.post(`${API_BASE_URL}/api/v1/users/token/refresh/`, {}, { withCredentials: true });
         
-        setTokens(access, refresh);
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${access}`;
-        originalRequest.headers.Authorization = `Bearer ${access}`;
-        
-        processQueue(null, access);
+        processQueue(null, 'refreshed');
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        clearTokens();
         window.dispatchEvent(new Event('auth-logout'));
         return Promise.reject(refreshError);
       } finally {
@@ -246,79 +209,84 @@ export interface WorkspaceSubscription {
 export const api = {
   // Auth Operations
   async register(data: RegisterRequest) {
-    const response = await apiClient.post('/api/users/register/', data);
+    const response = await apiClient.post('/api/v1/users/register/', data);
     return response.data;
   },
 
   async verifyEmail(token: string) {
-    const response = await apiClient.get(`/api/users/register/verify-email/?token=${token}`);
+    const response = await apiClient.get(`/api/v1/users/register/verify-email/?token=${token}`);
     return response.data;
   },
 
   async resendVerificationEmail(email: string) {
-    const response = await apiClient.post('/api/users/register/resend-verification-email/', { email });
+    const response = await apiClient.post('/api/v1/users/register/resend-verification-email/', { email });
     return response.data;
   },
 
   async forgotPassword(data: ForgotPasswordRequest) {
-    const response = await apiClient.post('/api/users/forgot-password/', data);
+    const response = await apiClient.post('/api/v1/users/forgot-password/', data);
     return response.data;
   },
 
   async resetPassword(data: ResetPasswordRequest) {
-    const response = await apiClient.post('/api/users/reset-password/', data);
+    const response = await apiClient.post('/api/v1/users/reset-password/', data);
     return response.data;
   },
 
   async login(data: LoginRequest) {
-    const response = await apiClient.post('/api/users/login/', data);
+    const response = await apiClient.post('/api/v1/users/login/', data);
     return response.data;
   },
 
   async googleLogin(data: GoogleLoginRequest) {
-    const response = await apiClient.post('/api/users/auth/google/', data);
+    const response = await apiClient.post('/api/v1/users/auth/google/', data);
+    return response.data;
+  },
+
+  async logout() {
+    const response = await apiClient.post('/api/v1/users/logout/');
     return response.data;
   },
 
   // Workspace API Operations
   async listWorkspaces(): Promise<Workspace[]> {
-    const response = await apiClient.get('/api/workspaces/');
+    const response = await apiClient.get('/api/v1/workspaces/');
     return response.data;
   },
 
   async createWorkspace(name: string, slug: string): Promise<Workspace> {
-    const response = await apiClient.post('/api/workspaces/', { name, slug });
+    const response = await apiClient.post('/api/v1/workspaces/', { name, slug });
     return response.data;
   },
 
   async inviteWorkspaceMember(slug: string, email: string, role: string): Promise<WorkspaceInvitation> {
-    const response = await apiClient.post(`/api/workspaces/${slug}/invite/`, { email, role });
+    const response = await apiClient.post(`/api/v1/workspaces/${slug}/invite/`, { email, role });
     return response.data;
   },
 
   async acceptWorkspaceInvitation(token: string): Promise<{ message: string }> {
-    const response = await apiClient.post('/api/workspaces/accept-invite/', { token });
+    const response = await apiClient.post('/api/v1/workspaces/accept-invite/', { token });
     return response.data;
   },
 
   async toggleAutopay(slug: string): Promise<WorkspaceSubscription> {
-    const response = await apiClient.post(`/api/workspaces/${slug}/toggle-autopay/`);
+    const response = await apiClient.post(`/api/v1/workspaces/${slug}/toggle-autopay/`);
     return response.data;
   },
 
   async checkoutSession(slug: string): Promise<{ checkout_url: string }> {
-    const response = await apiClient.post(`/api/workspaces/${slug}/checkout/`);
+    const response = await apiClient.post(`/api/v1/workspaces/${slug}/checkout/`);
     return response.data;
   },
 
   // Chats & Channels API Operations
   async listChannels(workspaceSlug: string): Promise<Channel[]> {
-    const response = await apiClient.get(`/api/chats/workspaces/${workspaceSlug}/channels/`);
+    const response = await apiClient.get(`/api/v1/chats/workspaces/${workspaceSlug}/channels/`);
     return response.data;
   },
 
   async createChannel(workspaceSlug: string, name: string, description: string, isPrivate: boolean): Promise<Channel> {
-    const response = await apiClient.post(`/api/chats/workspaces/${workspaceSlug}/channels/`, {
+    const response = await apiClient.post(`/api/v1/chats/workspaces/${workspaceSlug}/channels/`, {
       name,
       description,
       is_private: isPrivate
@@ -327,43 +295,43 @@ export const api = {
   },
 
   async listTopics(channelId: number): Promise<Topic[]> {
-    const response = await apiClient.get(`/api/chats/channels/${channelId}/topics/`);
+    const response = await apiClient.get(`/api/v1/chats/channels/${channelId}/topics/`);
     return response.data;
   },
 
   async createTopic(channelId: number, title: string, content: string): Promise<Topic> {
-    const response = await apiClient.post(`/api/chats/channels/${channelId}/topics/`, { title, content });
+    const response = await apiClient.post(`/api/v1/chats/channels/${channelId}/topics/`, { title, content });
     return response.data;
   },
 
   async listReplies(topicId: number): Promise<Reply[]> {
-    const response = await apiClient.get(`/api/chats/topics/${topicId}/replies/`);
+    const response = await apiClient.get(`/api/v1/chats/topics/${topicId}/replies/`);
     return response.data;
   },
 
   async createReply(topicId: number, content: string): Promise<Reply> {
-    const response = await apiClient.post(`/api/chats/topics/${topicId}/replies/`, { content });
+    const response = await apiClient.post(`/api/v1/chats/topics/${topicId}/replies/`, { content });
     return response.data;
   },
 
   // Voice Huddle / WebRTC Call API Operations
   async listCalls(workspaceSlug: string): Promise<CallSession[]> {
-    const response = await apiClient.get(`/api/calls/workspaces/${workspaceSlug}/calls/`);
+    const response = await apiClient.get(`/api/v1/calls/workspaces/${workspaceSlug}/calls/`);
     return response.data;
   },
 
   async createCall(workspaceSlug: string, receiverEmail: string): Promise<CallSession> {
-    const response = await apiClient.post(`/api/calls/workspaces/${workspaceSlug}/calls/`, { receiver_email: receiverEmail });
+    const response = await apiClient.post(`/api/v1/calls/workspaces/${workspaceSlug}/calls/`, { receiver_email: receiverEmail });
     return response.data;
   },
 
   async acceptCall(sessionId: number): Promise<CallSession> {
-    const response = await apiClient.post(`/api/calls/${sessionId}/accept/`);
+    const response = await apiClient.post(`/api/v1/calls/${sessionId}/accept/`);
     return response.data;
   },
 
   async endCall(sessionId: number): Promise<CallSession> {
-    const response = await apiClient.post(`/api/calls/${sessionId}/end/`);
+    const response = await apiClient.post(`/api/v1/calls/${sessionId}/end/`);
     return response.data;
   },
 };

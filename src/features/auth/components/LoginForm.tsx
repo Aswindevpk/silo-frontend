@@ -3,19 +3,17 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '../schemas/schemas';
-import { useLoginMutation, useGoogleLoginMutation } from '../hooks/queries';
+import { useLoginMutation } from '../hooks/queries';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { useGoogleLogin } from '@react-oauth/google';
 
 export const LoginForm: React.FC = () => {
   const navigate = useNavigate();
   const loginMutation = useLoginMutation();
-  const googleLoginMutation = useGoogleLoginMutation();
-
+  
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -36,26 +34,11 @@ export const LoginForm: React.FC = () => {
     });
   };
 
-  const handleGoogleLogin = useGoogleLogin({
-    flow: 'auth-code',
-    onSuccess: (codeResponse) => {
-      googleLoginMutation.mutate(codeResponse.code, {
-        onSuccess: () => {
-          toast.success('Signed in with Google!');
-          navigate('/dashboard');
-        },
-        onError: (err: any) => {
-          toast.error(err.message || 'Google Sign-In failed.');
-        },
-      });
-    },
-    onError: (error) => {
-      console.error('Google Sign-In failed:', error);
-      toast.error('Google Sign-In was cancelled or failed.');
-    },
-  });
+  const handleGoogleLogin = () => {
+    window.location.href = 'http://localhost:8000/api/v1/users/auth/google/login';
+  };
 
-  const isSubmitting = loginMutation.isPending || googleLoginMutation.isPending;
+  const isSubmitting = loginMutation.isPending;
 
   return (
     <Card className="w-full max-w-md shadow-lg border-zinc-200/80 dark:border-zinc-800">

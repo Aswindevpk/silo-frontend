@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { api, setTokens, type RegisterRequest } from '@/lib/api';
+import { api, type RegisterRequest } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 export const useLoginMutation = () => {
@@ -9,7 +9,6 @@ export const useLoginMutation = () => {
       return api.login(data);
     },
     onSuccess: (data) => {
-      setTokens(data.access, data.refresh);
       localStorage.setItem('user_profile', JSON.stringify(data.user));
       setUser(data.user);
     },
@@ -23,7 +22,6 @@ export const useGoogleLoginMutation = () => {
       return api.googleLogin({ code, redirect_uri: 'postmessage' });
     },
     onSuccess: (data) => {
-      setTokens(data.access, data.refresh);
       localStorage.setItem('user_profile', JSON.stringify(data.user));
       setUser(data.user);
     },
@@ -67,5 +65,20 @@ export const useResendEmailMutation = () => {
     mutationFn: async (email: string) => {
       return api.resendVerificationEmail(email);
     },
+  });
+};
+
+export const useLogoutMutation = () => {
+  const { logout } = useAuth();
+  return useMutation({
+    mutationFn: async () => {
+      return api.logout();
+    },
+    onSuccess: () => {
+      logout();
+    },
+    onError: () => {
+      logout(); // Force local logout even if server fails
+    }
   });
 };

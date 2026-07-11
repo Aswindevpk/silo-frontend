@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, type RegisterInput } from '../schemas/schemas';
-import { useRegisterMutation, useGoogleLoginMutation } from '../hooks/queries';
+import { useRegisterMutation } from '../hooks/queries';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,7 @@ import { toast } from 'sonner';
 export const RegisterForm: React.FC = () => {
   const navigate = useNavigate();
   const registerMutation = useRegisterMutation();
-  const googleLoginMutation = useGoogleLoginMutation();
-  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+    const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
 
   const form = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
@@ -46,19 +45,10 @@ export const RegisterForm: React.FC = () => {
   };
 
   const handleGoogleLogin = () => {
-    const mockGoogleToken = 'mock_google_id_token_' + Math.random().toString(36).substring(7);
-    googleLoginMutation.mutate(mockGoogleToken, {
-      onSuccess: () => {
-        toast.success('Signed in with Google!');
-        navigate('/dashboard');
-      },
-      onError: (err: any) => {
-        toast.error(err.message || 'Google Sign-In failed.');
-      },
-    });
+    window.location.href = 'http://localhost:8000/api/v1/users/auth/google/login';
   };
 
-  const isSubmitting = registerMutation.isPending || googleLoginMutation.isPending;
+  const isSubmitting = registerMutation.isPending;
 
   if (registeredEmail) {
     return (
