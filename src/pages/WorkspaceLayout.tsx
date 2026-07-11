@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
+import { EphemeralChat } from '@/components/EphemeralChat';
 import { api, type Channel, type Workspace } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useCall } from '@/context/CallContext';
@@ -294,6 +295,7 @@ export const WorkspaceLayout: React.FC = () => {
           </div>
         )}
       </main>
+      <EphemeralChat />
 
       {/* 3. Add Channel Modal */}
       {showAddChannel && (

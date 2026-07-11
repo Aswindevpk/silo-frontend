@@ -78,7 +78,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Send ICE Candidates
     pc.onicecandidate = (event) => {
       if (event.candidate && activeSession) {
-        sendJsonMessage({
+        sendJsonMessage('calls', {
           type: 'ice_candidate',
           receiver_id: activeSession.receiver?.id === activeSession.caller?.id ? activeSession.caller?.id : activeSession.receiver?.id,
           candidate: event.candidate
@@ -92,7 +92,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Subscribe to call signaling events
   useEffect(() => {
     // 1. Incoming Call signal
-    const cleanupIncoming = registerMessageHandler('incoming_call', (data) => {
+    const cleanupIncoming = registerMessageHandler('calls', 'incoming_call', (data) => {
       // Data contains: { session_id, caller_id, caller_email }
       setIncomingCall({
         sessionId: data.session_id,
@@ -103,7 +103,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     // 2. Call Accepted signal (for Caller)
-    const cleanupAccepted = registerMessageHandler('call_accepted', async () => {
+    const cleanupAccepted = registerMessageHandler('calls', 'call_accepted', async () => {
       toast.success('Call accepted. Negotiating audio stream...');
       setCallStatus('connected');
 
@@ -113,7 +113,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      sendJsonMessage({
+      sendJsonMessage('calls', {
         type: 'webrtc_signal',
         receiver_id: activeSession?.receiver?.id,
         sdp: offer
@@ -121,7 +121,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     // 3. WebRTC Signal Relay (SDP Offer/Answer)
-    const cleanupSignal = registerMessageHandler('webrtc_signal', async (data) => {
+    const cleanupSignal = registerMessageHandler('calls', 'webrtc_signal', async (data) => {
       const pc = peerConnectionRef.current || (await setupPeerConnection());
       
       if (data.sdp) {
@@ -131,7 +131,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           
-          sendJsonMessage({
+          sendJsonMessage('calls', {
             type: 'webrtc_signal',
             receiver_id: data.sender_id,
             sdp: answer
@@ -142,7 +142,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     // 4. ICE Candidates
-    const cleanupIce = registerMessageHandler('ice_candidate', async (data) => {
+    const cleanupIce = registerMessageHandler('calls', 'ice_candidate', async (data) => {
       if (peerConnectionRef.current && data.candidate) {
         try {
           await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
@@ -153,7 +153,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     // 5. Call Ended / Rejected
-    const cleanupEnded = registerMessageHandler('call_ended', () => {
+    const cleanupEnded = registerMessageHandler('calls', 'call_ended', () => {
       toast.error('The call has ended.');
       cleanupWebRTC();
     });
@@ -172,12 +172,6 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCallStatus('calling');
       const session = await api.createCall(workspaceSlug, receiverEmail);
       setActiveSession(session);
-      
-      // Send WebSocket Dial Request
-      sendJsonMessage({
-        type: 'call_request',
-        receiver_id: session.receiver?.id
-      });
       toast.info(`Dialing ${receiverEmail}...`);
     } catch (err: any) {
       toast.error(err.message || 'Failed to start call');
@@ -192,12 +186,6 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setActiveSession(session);
       setIncomingCall(null);
       setCallStatus('connected');
-
-      // Inform Caller via WebSockets
-      sendJsonMessage({
-        type: 'call_accept',
-        session_id: session.id
-      });
       
       // Start media connections
       await setupPeerConnection();
@@ -210,11 +198,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const rejectCall = async () => {
     if (!incomingCall) return;
     try {
-      // In WebSockets, send reject signal
-      sendJsonMessage({
-        type: 'call_reject',
-        session_id: incomingCall.sessionId
-      });
+      await api.endCall(incomingCall.sessionId);
       setIncomingCall(null);
       setCallStatus('idle');
       toast.info('Call rejected.');
@@ -229,10 +213,6 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!activeSession) return;
     try {
       await api.endCall(activeSession.id);
-      sendJsonMessage({
-        type: 'call_reject', // Signaling consumer handles this as closing
-        session_id: activeSession.id
-      });
       cleanupWebRTC();
       toast.info('Call ended.');
     } catch (err) {

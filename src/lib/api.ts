@@ -70,7 +70,7 @@ apiClient.interceptors.response.use(
       }
 
       if (isRefreshing) {
-        return new Promise<void>((resolve, reject) => {
+        return new Promise<string | null>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then(() => {

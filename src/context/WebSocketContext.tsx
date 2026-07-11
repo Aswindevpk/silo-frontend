@@ -1,114 +1,55 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { wsManager } from '@/lib/WebSocketManager';
+import { useAuth } from '@/context/AuthContext';
+
+type StreamNamespace = 'system' | 'chat' | 'calls';
 
 interface WebSocketContextType {
   isConnected: boolean;
   isAuthenticated: boolean;
   subscribeToChannel: (channelId: number) => void;
-  sendJsonMessage: (message: any) => void;
-  registerMessageHandler: (type: string, handler: (data: any) => void) => () => void;
+  sendJsonMessage: (stream: StreamNamespace, message: any) => void;
+  registerMessageHandler: (stream: StreamNamespace, type: string, handler: (data: any) => void) => () => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
 
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const socketRef = useRef<WebSocket | null>(null);
-  const messageHandlersRef = useRef<Map<string, Set<(data: any) => void>>>(new Map());
+  const [isWsAuthenticated, setIsWsAuthenticated] = useState(false);
+  const { isAuthenticated } = useAuth(); // from AuthContext
 
-  // Connect WebSocket
   useEffect(() => {
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/users/';
-    const socket = new WebSocket(wsUrl);
-    socketRef.current = socket;
-
-    socket.onopen = () => {
-      setIsConnected(true);
-      
-      // In-band JWT Authentication is removed because we rely on HttpOnly cookies sent during handshake.
-      // Assuming backend Channels middleware parses cookies to authenticate the WebSocket.
-    };
-
-    socket.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        
-        // Handle auth success response if backend notifies us
-        if (payload.message === 'Authentication successful!' || (payload.status === 'success' && payload.message?.includes('Subscribed'))) {
-          if (payload.message === 'Authentication successful!') {
-            setIsAuthenticated(true);
-          }
-        }
-
-        // Standard notification broadcast type
-        const type = payload.type || payload.status;
-        if (type) {
-          const handlers = messageHandlersRef.current.get(type);
-          if (handlers) {
-            handlers.forEach((handler) => handler(payload.data || payload));
-          }
-        }
-      } catch (err) {
-        console.error('Error parsing web socket frame message', err);
-      }
-    };
-
-    socket.onclose = () => {
-      setIsConnected(false);
-      setIsAuthenticated(false);
-    };
-
-    socket.onerror = (err) => {
-      console.error('WebSocket encountered an error', err);
-    };
+    // Sync React state with the global manager
+    const unsubscribe = wsManager.onStateChange((connected, authenticated) => {
+      setIsConnected(connected);
+      setIsWsAuthenticated(authenticated);
+    });
 
     return () => {
-      socket.close();
+      unsubscribe();
     };
   }, []);
 
-  const subscribeToChannel = (channelId: number) => {
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({
-        type: 'subscribe',
-        channel_id: channelId
-      }));
-    }
-  };
-
-  const sendJsonMessage = (message: any) => {
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify(message));
+  useEffect(() => {
+    // Only connect if user is authenticated via AuthContext
+    if (isAuthenticated) {
+      wsManager.connect();
     } else {
-      console.warn('Cannot send websocket message: Socket is not open.');
+      wsManager.disconnect();
     }
-  };
-
-  const registerMessageHandler = (type: string, handler: (data: any) => void) => {
-    if (!messageHandlersRef.current.has(type)) {
-      messageHandlersRef.current.set(type, new Set());
-    }
-    messageHandlersRef.current.get(type)!.add(handler);
-
-    // Return cleanup function to unregister
-    return () => {
-      const handlers = messageHandlersRef.current.get(type);
-      if (handlers) {
-        handlers.delete(handler);
-        if (handlers.size === 0) {
-          messageHandlersRef.current.delete(type);
-        }
-      }
-    };
-  };
+    
+    // We do not cleanup connect/disconnect on unmount to survive React StrictMode,
+    // we only depend on isAuthenticated changing.
+  }, [isAuthenticated]);
 
   return (
     <WebSocketContext.Provider value={{
       isConnected,
-      isAuthenticated,
-      subscribeToChannel,
-      sendJsonMessage,
-      registerMessageHandler
+      isAuthenticated: isWsAuthenticated,
+      subscribeToChannel: wsManager.subscribeToChannel.bind(wsManager),
+      sendJsonMessage: wsManager.sendJsonMessage.bind(wsManager),
+      registerMessageHandler: wsManager.registerMessageHandler.bind(wsManager)
     }}>
       {children}
     </WebSocketContext.Provider>
@@ -122,3 +63,4 @@ export const useWebSocket = () => {
   }
   return context;
 };
+

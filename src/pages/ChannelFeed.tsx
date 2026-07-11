@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, type Channel, type Topic, type Reply } from '@/lib/api';
 import { useWebSocket } from '@/context/WebSocketContext';
+import { useSiloChatRoom } from '@/hooks/useSiloChatRoom';
 import { useCall } from '@/context/CallContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,15 +20,21 @@ import { toast } from 'sonner';
 
 export const ChannelFeed: React.FC = () => {
   const { workspaceSlug, channelId } = useParams<{ workspaceSlug: string; channelId: string }>();
-  const { subscribeToChannel, registerMessageHandler, sendJsonMessage } = useWebSocket();
+  const { subscribeToChannel, registerMessageHandler } = useWebSocket();
   const { startCall } = useCall();
-
   const [channel, setChannel] = useState<Channel | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Active Thread / Replies Drawer State
   const [activeTopic, setActiveTopic] = useState<Topic | null>(null);
+  
+  // Use new hook
+  const { sendReplyMessage, updateTypingStatus, activeTypers } = useSiloChatRoom(
+    channel?.workspace || 0, // wait, channel model has workspace? Yes.
+    parseInt(channelId || '0', 10),
+    activeTopic?.id || null
+  );
   const [replies, setReplies] = useState<Reply[]>([]);
   const [newReplyContent, setNewReplyContent] = useState('');
   const [loadingReplies, setLoadingReplies] = useState(false);
@@ -77,21 +84,28 @@ export const ChannelFeed: React.FC = () => {
   // Real-time updates subscription hook
   useEffect(() => {
     // Listen for new topics or new replies posted in our channel group
-    const unsubscribeNewReply = registerMessageHandler('message', (message: any) => {
-      // Message format: { topic_id, reply: ReplyObject }
-      if (message && message.topic_id) {
+    const unsubscribeNewReply = registerMessageHandler('chat', 'new_reply_broadcast', (message: any) => {
+      // Message format: ReplySerializer data. It has topic (id), content, etc.
+      // Wait! In the view we serialized it using ReplySerializer, so it has `topic` instead of `topic_id`!
+      // Let's check ReplySerializer in backend to be sure. If it has `topic`, we use `message.topic`.
+      const topicId = message.topic || message.topic_id;
+      if (message && topicId) {
         // Increment reply count in topics list
         setTopics((prev) =>
           prev.map((t) =>
-            t.id === message.topic_id
+            t.id === topicId
               ? { ...t, replies_count: (t.replies_count || 0) + 1 }
               : t
           )
         );
 
         // If the active open thread drawer is for this topic, append the reply in real time!
-        if (activeTopic && activeTopic.id === message.topic_id) {
-          setReplies((prev) => [...prev, message]);
+        if (activeTopic && activeTopic.id === topicId) {
+          setReplies((prev) => {
+            // Deduplicate (if we already appended it optimistically)
+            if (prev.some(r => r.id === message.id)) return prev;
+            return [...prev, message];
+          });
         }
       }
     });
@@ -136,27 +150,8 @@ export const ChannelFeed: React.FC = () => {
     if (!activeTopic || !newReplyContent.trim()) return;
 
     try {
-      const rep = await api.createReply(activeTopic.id, newReplyContent);
-      
-      // Send real-time broadcast payload to WebSocket
-      sendJsonMessage({
-        type: 'new_reply',
-        topic_id: activeTopic.id,
-        content: newReplyContent
-      });
-
-      // Update UI locally
-      setReplies([...replies, rep]);
+      sendReplyMessage(newReplyContent);
       setNewReplyContent('');
-
-      // Update replies count in list
-      setTopics((prev) =>
-        prev.map((t) =>
-          t.id === activeTopic.id
-            ? { ...t, replies_count: (t.replies_count || 0) + 1 }
-            : t
-        )
-      );
     } catch (err: any) {
       toast.error(err.message || 'Failed to send reply.');
     }
@@ -331,12 +326,19 @@ export const ChannelFeed: React.FC = () => {
           </div>
 
           {/* Post Reply Input Form */}
+          <div className="px-4 py-1 text-[10px] text-zinc-500 italic h-4">
+            {Object.values(activeTypers).some(Boolean) && "Someone is typing..."}
+          </div>
           <form onSubmit={handlePostReply} className="p-3 border-t border-zinc-800 bg-zinc-900/80">
             <div className="flex items-center gap-1 bg-zinc-950 border border-zinc-800 rounded px-2">
               <input
                 placeholder="Reply to this thread..."
                 value={newReplyContent}
-                onChange={(e) => setNewReplyContent(e.target.value)}
+                onChange={(e) => {
+                  setNewReplyContent(e.target.value);
+                  updateTypingStatus(e.target.value.length > 0);
+                }}
+                onBlur={() => updateTypingStatus(false)}
                 className="flex-1 bg-transparent py-2 text-xs focus:outline-none text-zinc-100"
               />
               <button
