@@ -264,6 +264,11 @@ export const api = {
     return response.data;
   },
 
+  async listWorkspaceMembers(slug: string): Promise<WorkspaceMember[]> {
+    const response = await apiClient.get(`/api/v1/workspaces/${slug}/members/`);
+    return response.data;
+  },
+
   async acceptWorkspaceInvitation(token: string): Promise<{ message: string }> {
     const response = await apiClient.post('/api/v1/workspaces/accept-invite/', { token });
     return response.data;

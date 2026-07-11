@@ -4,6 +4,8 @@ import { EphemeralChat } from '@/components/EphemeralChat';
 import { api, type Channel, type Workspace } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useCall } from '@/context/CallContext';
+import { usePresence } from '@/hooks/usePresence';
+import { type WorkspaceMember } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -16,7 +18,9 @@ import {
   Volume2,
   PhoneCall,
   PhoneOff,
-  LogOut
+  LogOut,
+  Video,
+  MessageSquare
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -31,12 +35,19 @@ export const WorkspaceLayout: React.FC = () => {
     activeSession,
     acceptCall,
     rejectCall,
-    endCall
+    endCall,
+    startCall
   } = useCall();
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
+  const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const { onlineUserIds, isOnline } = usePresence(workspaceSlug);
+
+  // Expanded member state
+  const [expandedMemberId, setExpandedMemberId] = useState<number | null>(null);
+  const [chatTargetEmail, setChatTargetEmail] = useState<string | null>(null);
 
   // Channel Creation Modal State
   const [showAddChannel, setShowAddChannel] = useState(false);
@@ -61,6 +72,9 @@ export const WorkspaceLayout: React.FC = () => {
 
       const chList = await api.listChannels(workspaceSlug);
       setChannels(chList);
+
+      const memList = await api.listWorkspaceMembers(workspaceSlug);
+      setMembers(memList);
 
       // If we are just on /w/:workspaceSlug, navigate to the first channel
       if (location.pathname === `/w/${workspaceSlug}` || location.pathname === `/w/${workspaceSlug}/`) {
@@ -198,6 +212,76 @@ export const WorkspaceLayout: React.FC = () => {
               </Link>
             </div>
           </div>
+
+          {/* Direct Messages & Members Section */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between px-2 mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">
+              <span>Direct Messages</span>
+            </div>
+            <div className="space-y-0.5">
+              {members.map((member) => {
+                const isExpanded = expandedMemberId === member.user.id;
+                const isCurrentUser = member.user.id === user?.id; // Assuming user.id exists, if not we check email
+                const isOnlineStatus = isOnline(member.user.id);
+                
+                return (
+                  <div key={member.id} className="flex flex-col">
+                    <button
+                      onClick={() => setExpandedMemberId(isExpanded ? null : member.user.id)}
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors w-full ${
+                        isExpanded
+                          ? 'bg-zinc-800 text-zinc-200'
+                          : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                      }`}
+                    >
+                      <div className="relative">
+                        <div className="h-5 w-5 bg-zinc-700 text-zinc-300 rounded-full flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
+                          {member.user.username.charAt(0)}
+                        </div>
+                        {isOnlineStatus && (
+                          <div className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-zinc-900"></div>
+                        )}
+                      </div>
+                      <span className="truncate flex-1 text-left">{member.user.username} {isCurrentUser && '(You)'}</span>
+                    </button>
+                    
+                    {/* Action Bar */}
+                    {isExpanded && !isCurrentUser && (
+                      <div className="flex items-center gap-1 pl-9 pr-2 py-1 pb-2">
+                        <button
+                          onClick={() => {
+                            if (workspaceSlug) startCall(workspaceSlug, member.user.email, false);
+                          }}
+                          className="flex-1 flex justify-center items-center py-1.5 bg-zinc-800 hover:bg-emerald-500/20 hover:text-emerald-400 text-zinc-400 rounded transition-colors"
+                          title="Voice Call"
+                        >
+                          <PhoneCall className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (workspaceSlug) startCall(workspaceSlug, member.user.email, true);
+                          }}
+                          className="flex-1 flex justify-center items-center py-1.5 bg-zinc-800 hover:bg-sky-500/20 hover:text-sky-400 text-zinc-400 rounded transition-colors"
+                          title="Video Call"
+                        >
+                          <Video className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setChatTargetEmail(member.user.email);
+                          }}
+                          className="flex-1 flex justify-center items-center py-1.5 bg-zinc-800 hover:bg-purple-500/20 hover:text-purple-400 text-zinc-400 rounded transition-colors"
+                          title="Message"
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Workspace Footer Actions */}
@@ -295,7 +379,11 @@ export const WorkspaceLayout: React.FC = () => {
           </div>
         )}
       </main>
-      <EphemeralChat />
+      <EphemeralChat 
+        targetEmail={chatTargetEmail} 
+        onClose={() => setChatTargetEmail(null)}
+        onIncomingMessage={(senderEmail) => setChatTargetEmail(senderEmail)}
+      />
 
       {/* 3. Add Channel Modal */}
       {showAddChannel && (

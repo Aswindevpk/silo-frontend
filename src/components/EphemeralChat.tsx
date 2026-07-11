@@ -11,15 +11,28 @@ interface Message {
   timestamp: Date;
 }
 
-export const EphemeralChat: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [receiverEmail, setReceiverEmail] = useState('');
-  const [activeChat, setActiveChat] = useState(''); // The person currently chatting with
+interface EphemeralChatProps {
+  targetEmail: string | null;
+  onClose: () => void;
+  onIncomingMessage?: (senderEmail: string) => void;
+}
+
+export const EphemeralChat: React.FC<EphemeralChatProps> = ({ targetEmail, onClose, onIncomingMessage }) => {
+  const [activeChat, setActiveChat] = useState<string | null>(null); // The person currently chatting with
   const [inputMessage, setInputMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   
   const { sendJsonMessage, registerMessageHandler } = useWebSocket();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (targetEmail) {
+      setActiveChat(targetEmail);
+      // We don't clear messages if it's the same person, but for simplicity we keep history
+    } else {
+      setActiveChat(null);
+    }
+  }, [targetEmail]);
 
   useEffect(() => {
     const cleanup = registerMessageHandler('chat', 'ephemeral_chat', (data: any) => {
@@ -35,19 +48,16 @@ export const EphemeralChat: React.FC = () => {
       
       setMessages((prev) => [...prev, newMessage]);
       
+      setMessages((prev) => [...prev, newMessage]);
+      
       // Auto-open if closed and we received a message
-      if (!isOpen) {
-        setIsOpen(true);
-        setActiveChat(sender_email);
-        setReceiverEmail(sender_email);
-      } else if (!activeChat) {
-        setActiveChat(sender_email);
-        setReceiverEmail(sender_email);
+      if (onIncomingMessage) {
+        onIncomingMessage(sender_email);
       }
     });
 
     return () => cleanup();
-  }, [isOpen, activeChat, registerMessageHandler]);
+  }, [activeChat, registerMessageHandler, onIncomingMessage]);
 
   useEffect(() => {
     // Scroll to bottom when messages change
@@ -56,10 +66,6 @@ export const EphemeralChat: React.FC = () => {
 
   const handleStartChat = (e: React.FormEvent) => {
     e.preventDefault();
-    if (receiverEmail.trim()) {
-      setActiveChat(receiverEmail.trim());
-      setMessages([]); // Clear previous chat history if starting new
-    }
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -85,15 +91,8 @@ export const EphemeralChat: React.FC = () => {
     setInputMessage('');
   };
 
-  if (!isOpen) {
-    return (
-      <Button 
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-emerald-500 hover:bg-emerald-400 shadow-xl flex items-center justify-center text-zinc-950 z-50 transition-all hover:scale-105"
-      >
-        <MessageSquare className="h-6 w-6" />
-      </Button>
-    );
+  if (!targetEmail && !activeChat) {
+    return null;
   }
 
   return (
@@ -105,7 +104,10 @@ export const EphemeralChat: React.FC = () => {
           Direct Message
         </h3>
         <button 
-          onClick={() => setIsOpen(false)}
+          onClick={() => {
+            setActiveChat(null);
+            onClose();
+          }}
           className="text-zinc-400 hover:text-zinc-100 p-1 rounded-md hover:bg-zinc-800 transition-colors"
         >
           <X className="h-4 w-4" />
@@ -113,31 +115,10 @@ export const EphemeralChat: React.FC = () => {
       </div>
 
       {/* Body */}
-      {!activeChat ? (
-        <div className="flex-1 p-4 flex flex-col justify-center gap-3 bg-zinc-900/50">
-          <p className="text-sm text-zinc-400 text-center mb-2">
-            Start a secure, untracked, P2P ephemeral conversation.
-          </p>
-          <form onSubmit={handleStartChat} className="flex flex-col gap-2">
-            <input 
-              type="email"
-              placeholder="Enter member's email..."
-              value={receiverEmail}
-              onChange={(e) => setReceiverEmail(e.target.value)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-md p-2 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500/50"
-              required
-            />
-            <Button type="submit" className="w-full bg-zinc-100 text-zinc-950 hover:bg-zinc-200 h-9 text-sm font-semibold">
-              Start Chat
-            </Button>
-          </form>
+      <>
+        <div className="bg-zinc-950/50 px-3 py-2 border-b border-zinc-800 text-xs text-zinc-400 flex items-center justify-between">
+          <span className="truncate">To: {activeChat}</span>
         </div>
-      ) : (
-        <>
-          <div className="bg-zinc-950/50 px-3 py-2 border-b border-zinc-800 text-xs text-zinc-400 flex items-center justify-between">
-            <span className="truncate">To: {activeChat}</span>
-            <button onClick={() => setActiveChat('')} className="text-zinc-500 hover:text-zinc-300">Change</button>
-          </div>
           
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
@@ -178,7 +159,6 @@ export const EphemeralChat: React.FC = () => {
             </button>
           </form>
         </>
-      )}
     </div>
   );
 };

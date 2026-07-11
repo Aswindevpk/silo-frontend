@@ -15,6 +15,7 @@ import { ChannelFeed } from '@/pages/ChannelFeed';
 import { DocumentCanvas } from '@/pages/DocumentCanvas';
 import { BillingSettings } from '@/pages/BillingSettings';
 import { GoogleCallback } from '@/pages/GoogleCallback';
+import { CallWidget } from '@/components/CallWidget';
 
 function App() {
   return (
@@ -109,6 +110,7 @@ function App() {
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
+            <CallWidget />
           </CallProvider>
         </WebSocketProvider>
       </AuthProvider>

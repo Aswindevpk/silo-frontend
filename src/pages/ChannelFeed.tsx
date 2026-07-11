@@ -436,8 +436,29 @@ export const ChannelFeed: React.FC = () => {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1 bg-emerald-500 text-zinc-950 hover:bg-emerald-400 font-bold">
-                  Dial Call
+                <Button 
+                  type="submit" 
+                  className="flex-1 bg-emerald-500 text-zinc-950 hover:bg-emerald-400 font-bold"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (!workspaceSlug || !dialerEmail) return;
+                    setShowCallDialer(false);
+                    startCall(workspaceSlug, dialerEmail, false).then(() => setDialerEmail('')).catch(()=>{});
+                  }}
+                >
+                  Voice
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="flex-1 bg-sky-500 text-zinc-950 hover:bg-sky-400 font-bold"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (!workspaceSlug || !dialerEmail) return;
+                    setShowCallDialer(false);
+                    startCall(workspaceSlug, dialerEmail, true).then(() => setDialerEmail('')).catch(()=>{});
+                  }}
+                >
+                  Video
                 </Button>
               </div>
             </form>

@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { useWebSocket } from './WebSocketContext';
 import { api, type CallSession } from '@/lib/api';
 import { toast } from 'sonner';
+import { ringtoneManager } from '@/lib/audioUtils';
+import { useAuth } from './AuthContext';
 
 interface CallContextType {
   activeSession: CallSession | null;
@@ -9,25 +11,37 @@ interface CallContextType {
   incomingCall: { sessionId: number; callerEmail: string } | null;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
-  startCall: (workspaceSlug: string, receiverEmail: string) => Promise<void>;
-  acceptCall: () => Promise<void>;
+  startCall: (workspaceSlug: string, receiverEmail: string, withVideo?: boolean) => Promise<void>;
+  acceptCall: (withVideo?: boolean) => Promise<void>;
   rejectCall: () => Promise<void>;
   endCall: () => Promise<void>;
+  toggleVideo: () => Promise<void>;
+  isVideoEnabled: boolean;
 }
 
 const CallContext = createContext<CallContextType | undefined>(undefined);
 
 export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { sendJsonMessage, registerMessageHandler } = useWebSocket();
+  const { user } = useAuth();
   const [activeSession, setActiveSession] = useState<CallSession | null>(null);
+  const activeSessionRef = useRef<CallSession | null>(null);
+
+  const setSessionState = (session: CallSession | null) => {
+    setActiveSession(session);
+    activeSessionRef.current = session;
+  };
+
   const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'ringing' | 'connected'>('idle');
-  const [incomingCall, setIncomingCall] = useState<{ sessionId: number; callerEmail: string } | null>(null);
+  const [incomingCall, setIncomingCall] = useState<{ sessionId: number; callerEmail: string; withVideo?: boolean } | null>(null);
   
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false);
 
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const iceCandidateQueueRef = useRef<RTCIceCandidateInit[]>([]);
 
   // WebRTC Configuration
   const rtcConfig: RTCConfiguration = {
@@ -49,8 +63,11 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLocalStream(null);
     setRemoteStream(null);
     setCallStatus('idle');
-    setActiveSession(null);
+    setSessionState(null);
     setIncomingCall(null);
+    setIsVideoEnabled(false);
+    iceCandidateQueueRef.current = [];
+    ringtoneManager.stop();
   };
 
   // Set up Peer Connection and media tracks
@@ -58,31 +75,32 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const pc = new RTCPeerConnection(rtcConfig);
     peerConnectionRef.current = pc;
 
-    // Request local audio stream
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      localStreamRef.current = stream;
-      setLocalStream(stream);
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-    } catch (err) {
-      console.warn('Microphone permission denied or unavailable, running calling flow in silent mode.', err);
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => pc.addTrack(track, localStreamRef.current!));
     }
 
     // Handle remote track
     pc.ontrack = (event) => {
       if (event.streams && event.streams[0]) {
-        setRemoteStream(event.streams[0]);
+        // Create a new stream object to force React state update
+        const newStream = new MediaStream(event.streams[0].getTracks());
+        setRemoteStream(newStream);
       }
     };
 
     // Send ICE Candidates
     pc.onicecandidate = (event) => {
-      if (event.candidate && activeSession) {
-        sendJsonMessage('calls', {
-          type: 'ice_candidate',
-          receiver_id: activeSession.receiver?.id === activeSession.caller?.id ? activeSession.caller?.id : activeSession.receiver?.id,
-          candidate: event.candidate
-        });
+      const currentSession = activeSessionRef.current;
+      if (event.candidate && currentSession && user) {
+        const isCaller = user.email === currentSession.caller?.email;
+        const targetId = isCaller ? currentSession.receiver?.id : currentSession.caller?.id;
+        if (targetId) {
+          sendJsonMessage('calls', {
+            type: 'ice_candidate',
+            receiver_id: targetId,
+            candidate: event.candidate
+          });
+        }
       }
     };
 
@@ -93,10 +111,11 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // 1. Incoming Call signal
     const cleanupIncoming = registerMessageHandler('calls', 'incoming_call', (data) => {
-      // Data contains: { session_id, caller_id, caller_email }
+      // Data contains: { session_id, caller_id, caller_email, with_video }
       setIncomingCall({
         sessionId: data.session_id,
-        callerEmail: data.caller_email || 'Workspace Member'
+        callerEmail: data.caller_email || 'Workspace Member',
+        withVideo: data.with_video || false
       });
       setCallStatus('ringing');
       toast.info(`Incoming voice call from ${data.caller_email || 'member'}`);
@@ -113,11 +132,14 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      sendJsonMessage('calls', {
-        type: 'webrtc_signal',
-        receiver_id: activeSession?.receiver?.id,
-        sdp: offer
-      });
+      const targetId = activeSessionRef.current?.receiver?.id;
+      if (targetId) {
+        sendJsonMessage('calls', {
+          type: 'webrtc_signal',
+          receiver_id: targetId,
+          sdp: offer
+        });
+      }
     });
 
     // 3. WebRTC Signal Relay (SDP Offer/Answer)
@@ -126,6 +148,14 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (data.sdp) {
         await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+
+        // Process queued ICE candidates now that remote description is set
+        while (iceCandidateQueueRef.current.length > 0) {
+          const candidate = iceCandidateQueueRef.current.shift();
+          if (candidate) {
+            await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(err => console.error('Error adding queued ICE', err));
+          }
+        }
 
         if (data.sdp.type === 'offer') {
           const answer = await pc.createAnswer();
@@ -143,11 +173,16 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 4. ICE Candidates
     const cleanupIce = registerMessageHandler('calls', 'ice_candidate', async (data) => {
-      if (peerConnectionRef.current && data.candidate) {
-        try {
-          await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
-        } catch (err) {
-          console.error('Error adding ICE candidate', err);
+      if (data.candidate) {
+        if (peerConnectionRef.current && peerConnectionRef.current.remoteDescription) {
+          try {
+            await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+          } catch (err) {
+            console.error('Error adding ICE candidate', err);
+          }
+        } else {
+          // Queue it if remote description isn't set yet
+          iceCandidateQueueRef.current.push(data.candidate);
         }
       }
     });
@@ -167,23 +202,62 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [activeSession]);
 
-  const startCall = async (workspaceSlug: string, receiverEmail: string) => {
+  // Manage Ringing Sounds based on callStatus
+  useEffect(() => {
+    if (callStatus === 'ringing') {
+      ringtoneManager.start('incoming');
+    } else if (callStatus === 'calling') {
+      ringtoneManager.start('outgoing');
+    } else {
+      ringtoneManager.stop();
+    }
+    
+    return () => ringtoneManager.stop();
+  }, [callStatus]);
+
+  const requestMediaPermissions = async (withVideo: boolean = false) => {
     try {
-      setCallStatus('calling');
-      const session = await api.createCall(workspaceSlug, receiverEmail);
-      setActiveSession(session);
-      toast.info(`Dialing ${receiverEmail}...`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to start call');
-      setCallStatus('idle');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: withVideo });
+      return stream;
+    } catch (err) {
+      toast.error(`Media access is required for calls.`);
+      throw err;
     }
   };
 
-  const acceptCall = async () => {
+  const startCall = async (workspaceSlug: string, receiverEmail: string, withVideo: boolean = false) => {
+    try {
+      // Get permissions BEFORE dialing
+      const stream = await requestMediaPermissions(withVideo);
+      localStreamRef.current = stream;
+      setLocalStream(stream);
+      setIsVideoEnabled(withVideo);
+
+      setCallStatus('calling');
+      // Pass with_video to the custom payload if needed, but our backend doesn't support adding custom fields to the signal yet.
+      const session = await api.createCall(workspaceSlug, receiverEmail);
+      setSessionState(session);
+      toast.info(`Dialing ${receiverEmail}...`);
+    } catch (err: any) {
+      if (err instanceof Error && err.name !== 'NotAllowedError') {
+         toast.error(err.message || 'Failed to start call');
+      }
+      setCallStatus('idle');
+      cleanupWebRTC();
+    }
+  };
+
+  const acceptCall = async (withVideo: boolean = false) => {
     if (!incomingCall) return;
     try {
+      // Get permissions BEFORE accepting
+      const stream = await requestMediaPermissions(withVideo || incomingCall.withVideo);
+      localStreamRef.current = stream;
+      setLocalStream(stream);
+      setIsVideoEnabled(withVideo || incomingCall.withVideo || false);
+
       const session = await api.acceptCall(incomingCall.sessionId);
-      setActiveSession(session);
+      setSessionState(session);
       setIncomingCall(null);
       setCallStatus('connected');
       
@@ -220,6 +294,53 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const toggleVideo = async () => {
+    if (!localStreamRef.current || !peerConnectionRef.current) return;
+    
+    try {
+      if (isVideoEnabled) {
+        // Turn off video
+        const videoTrack = localStreamRef.current.getVideoTracks()[0];
+        if (videoTrack) {
+          videoTrack.stop();
+          localStreamRef.current.removeTrack(videoTrack);
+          setIsVideoEnabled(false);
+          // Need to renegotiate or just let the track go black. Removing track requires renegotiation.
+          // For simplicity, just disable it:
+          // videoTrack.enabled = false;
+        }
+      } else {
+        // Turn on video
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const videoTrack = stream.getVideoTracks()[0];
+        localStreamRef.current.addTrack(videoTrack);
+        
+        // Add to peer connection
+        const sender = peerConnectionRef.current.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) {
+          sender.replaceTrack(videoTrack);
+        } else {
+          peerConnectionRef.current.addTrack(videoTrack, localStreamRef.current);
+          // Trigger renegotiation
+          const offer = await peerConnectionRef.current.createOffer();
+          await peerConnectionRef.current.setLocalDescription(offer);
+          const currentSession = activeSessionRef.current;
+          const targetId = user?.email === currentSession?.caller?.email ? currentSession?.receiver?.id : currentSession?.caller?.id;
+          if (targetId) {
+            sendJsonMessage('calls', {
+              type: 'webrtc_signal',
+              receiver_id: targetId,
+              sdp: offer
+            });
+          }
+        }
+        setIsVideoEnabled(true);
+      }
+    } catch (err) {
+      toast.error('Could not toggle camera.');
+    }
+  };
+
   return (
     <CallContext.Provider value={{
       activeSession,
@@ -230,7 +351,9 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       startCall,
       acceptCall,
       rejectCall,
-      endCall
+      endCall,
+      toggleVideo,
+      isVideoEnabled
     }}>
       {children}
     </CallContext.Provider>
