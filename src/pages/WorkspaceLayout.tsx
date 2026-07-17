@@ -43,7 +43,7 @@ export const WorkspaceLayout: React.FC = () => {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const { onlineUserIds, isOnline } = usePresence(workspaceSlug);
+  const { isOnline } = usePresence(workspaceSlug);
 
   // Expanded member state
   const [expandedMemberId, setExpandedMemberId] = useState<number | null>(null);
@@ -114,30 +114,30 @@ export const WorkspaceLayout: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-50">
+      <div className="flex min-h-screen items-center justify-center bg-white text-[#18181B]">
         <div className="text-center space-y-4">
-          <div className="animate-spin text-4xl text-sky-400 font-bold">⬢</div>
-          <p className="text-zinc-400 text-sm">Synchronizing tenant context...</p>
+          <img src="/silo.png" alt="SILO Logo" className="h-10 w-auto object-contain animate-pulse" />
+          <p className="text-gray-500 text-sm">Synchronizing tenant context...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-zinc-950 text-zinc-100 overflow-hidden font-sans">
+    <div className="flex h-screen bg-white text-[#18181B] overflow-hidden font-sans">
       {/* 1. Primary Left Sidebar */}
-      <aside className="w-64 border-r border-zinc-800 bg-zinc-900 flex flex-col h-full shrink-0">
+      <aside className="w-64 border-r border-gray-200 bg-white flex flex-col h-full shrink-0">
         {/* Workspace Title */}
-        <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80">
-            <span className="text-xl text-sky-400">⬢</span>
+            <img src="/silo.png" alt="SILO Logo" className="h-6 w-auto object-contain" />
             <span className="font-bold tracking-tight text-sm truncate max-w-[130px]">
               {workspace?.name}
             </span>
           </Link>
           <button
             onClick={() => navigate('/dashboard')}
-            className="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
+            className="p-1 rounded text-gray-500 hover:text-[#18181B] hover:bg-gray-100"
             title="Switch Workspace"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -148,11 +148,11 @@ export const WorkspaceLayout: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-3 space-y-6">
           {/* Channels Section */}
           <div className="space-y-1">
-            <div className="flex items-center justify-between px-2 mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">
+            <div className="flex items-center justify-between px-2 mb-2 text-xs font-bold uppercase tracking-wider text-[#18181B]0">
               <span>Threaded Channels</span>
               <button
                 onClick={() => setShowAddChannel(true)}
-                className="hover:text-zinc-200"
+                className="hover:text-[#18181B]"
                 title="Create Channel"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -167,13 +167,13 @@ export const WorkspaceLayout: React.FC = () => {
                     to={`/w/${workspaceSlug}/ch/${ch.id}`}
                     className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
                       isActive
-                        ? 'bg-zinc-800 text-sky-400 border-l-2 border-sky-400'
-                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                        ? 'bg-gray-100 text-[#18181B] border-l-2 border-[#18181B]'
+                        : 'text-gray-500 hover:text-[#18181B] hover:bg-gray-50'
                     }`}
                   >
                     <Hash className="h-4 w-4 shrink-0" />
                     <span className="truncate">{ch.name}</span>
-                    {ch.is_private && <span className="text-[10px] bg-zinc-800 text-zinc-500 px-1 rounded">Private</span>}
+                    {ch.is_private && <span className="text-[10px] bg-gray-100 text-[#18181B]0 px-1 rounded">Private</span>}
                   </Link>
                 );
               })}
@@ -182,7 +182,7 @@ export const WorkspaceLayout: React.FC = () => {
 
           {/* Docs/Wikis Section */}
           <div className="space-y-1">
-            <div className="flex items-center justify-between px-2 mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">
+            <div className="flex items-center justify-between px-2 mb-2 text-xs font-bold uppercase tracking-wider text-[#18181B]0">
               <span>Living Documentation</span>
             </div>
             <div className="space-y-0.5">
@@ -191,11 +191,11 @@ export const WorkspaceLayout: React.FC = () => {
                 to={`/w/${workspaceSlug}/docs/api-gateway-spec`}
                 className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   location.pathname.includes('/docs/api-gateway-spec')
-                    ? 'bg-zinc-800 text-purple-400 border-l-2 border-purple-400'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                    ? 'bg-gray-100 text-[#18181B] border-l-2 border-[#18181B]'
+                    : 'text-gray-500 hover:text-[#18181B] hover:bg-gray-50'
                 }`}
               >
-                <BookOpen className="h-4 w-4 shrink-0 text-purple-400" />
+                <BookOpen className="h-4 w-4 shrink-0 text-[#18181B]" />
                 <span className="truncate">📄 API Gateway V2 Spec</span>
               </Link>
               {/* Coturn doc */}
@@ -203,11 +203,11 @@ export const WorkspaceLayout: React.FC = () => {
                 to={`/w/${workspaceSlug}/docs/coturn-traversal`}
                 className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   location.pathname.includes('/docs/coturn-traversal')
-                    ? 'bg-zinc-800 text-purple-400 border-l-2 border-purple-400'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                    ? 'bg-gray-100 text-[#18181B] border-l-2 border-[#18181B]'
+                    : 'text-gray-500 hover:text-[#18181B] hover:bg-gray-50'
                 }`}
               >
-                <BookOpen className="h-4 w-4 shrink-0 text-purple-400" />
+                <BookOpen className="h-4 w-4 shrink-0 text-[#18181B]" />
                 <span className="truncate">📄 Coturn Traversal Guide</span>
               </Link>
             </div>
@@ -215,13 +215,13 @@ export const WorkspaceLayout: React.FC = () => {
 
           {/* Direct Messages & Members Section */}
           <div className="space-y-1">
-            <div className="flex items-center justify-between px-2 mb-2 text-xs font-bold uppercase tracking-wider text-zinc-500">
+            <div className="flex items-center justify-between px-2 mb-2 text-xs font-bold uppercase tracking-wider text-[#18181B]0">
               <span>Direct Messages</span>
             </div>
             <div className="space-y-0.5">
               {members.map((member) => {
                 const isExpanded = expandedMemberId === member.user.id;
-                const isCurrentUser = member.user.id === user?.id; // Assuming user.id exists, if not we check email
+                const isCurrentUser = member.user.email === user?.email; // Use email since user.id is not in AuthContext User
                 const isOnlineStatus = isOnline(member.user.id);
                 
                 return (
@@ -230,16 +230,16 @@ export const WorkspaceLayout: React.FC = () => {
                       onClick={() => setExpandedMemberId(isExpanded ? null : member.user.id)}
                       className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors w-full ${
                         isExpanded
-                          ? 'bg-zinc-800 text-zinc-200'
-                          : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                          ? 'bg-gray-100 text-[#18181B]'
+                          : 'text-gray-500 hover:text-[#18181B] hover:bg-gray-50'
                       }`}
                     >
                       <div className="relative">
-                        <div className="h-5 w-5 bg-zinc-700 text-zinc-300 rounded-full flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
+                        <div className="h-5 w-5 bg-gray-200 text-gray-700 rounded-full flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
                           {member.user.username.charAt(0)}
                         </div>
                         {isOnlineStatus && (
-                          <div className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-zinc-900"></div>
+                          <div className="absolute bottom-0 right-0 w-2 h-2 bg-[#18181B] rounded-full border border-white"></div>
                         )}
                       </div>
                       <span className="truncate flex-1 text-left">{member.user.username} {isCurrentUser && '(You)'}</span>
@@ -252,7 +252,7 @@ export const WorkspaceLayout: React.FC = () => {
                           onClick={() => {
                             if (workspaceSlug) startCall(workspaceSlug, member.user.email, false);
                           }}
-                          className="flex-1 flex justify-center items-center py-1.5 bg-zinc-800 hover:bg-emerald-500/20 hover:text-emerald-400 text-zinc-400 rounded transition-colors"
+                          className="flex-1 flex justify-center items-center py-1.5 bg-gray-100 hover:bg-gray-100 hover:text-[#18181B] text-gray-500 rounded transition-colors"
                           title="Voice Call"
                         >
                           <PhoneCall className="h-3.5 w-3.5" />
@@ -261,7 +261,7 @@ export const WorkspaceLayout: React.FC = () => {
                           onClick={() => {
                             if (workspaceSlug) startCall(workspaceSlug, member.user.email, true);
                           }}
-                          className="flex-1 flex justify-center items-center py-1.5 bg-zinc-800 hover:bg-sky-500/20 hover:text-sky-400 text-zinc-400 rounded transition-colors"
+                          className="flex-1 flex justify-center items-center py-1.5 bg-gray-100 hover:bg-gray-100 hover:text-[#18181B] text-gray-500 rounded transition-colors"
                           title="Video Call"
                         >
                           <Video className="h-3.5 w-3.5" />
@@ -270,7 +270,7 @@ export const WorkspaceLayout: React.FC = () => {
                           onClick={() => {
                             setChatTargetEmail(member.user.email);
                           }}
-                          className="flex-1 flex justify-center items-center py-1.5 bg-zinc-800 hover:bg-purple-500/20 hover:text-purple-400 text-zinc-400 rounded transition-colors"
+                          className="flex-1 flex justify-center items-center py-1.5 bg-gray-100 hover:bg-gray-100 hover:text-[#18181B] text-gray-500 rounded transition-colors"
                           title="Message"
                         >
                           <MessageSquare className="h-3.5 w-3.5" />
@@ -285,32 +285,32 @@ export const WorkspaceLayout: React.FC = () => {
         </div>
 
         {/* Workspace Footer Actions */}
-        <div className="p-3 border-t border-zinc-800 space-y-2">
+        <div className="p-3 border-t border-gray-200 space-y-2">
           {/* Billing Upgrade / Autopay Settings Link */}
           <Link
             to={`/w/${workspaceSlug}/settings/billing`}
             className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
               location.pathname.includes('/settings/billing')
-                ? 'bg-zinc-800 text-sky-400'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                ? 'bg-gray-100 text-[#18181B]'
+                : 'text-gray-500 hover:text-[#18181B] hover:bg-gray-50'
             }`}
           >
-            <Settings className="h-4 w-4 text-zinc-400" />
+            <Settings className="h-4 w-4 text-gray-500" />
             <span>Billing & Members</span>
           </Link>
 
           {/* User Info & Logout */}
-          <div className="flex items-center justify-between p-2 rounded bg-zinc-950/40 text-xs">
+          <div className="flex items-center justify-between p-2 rounded bg-white/40 text-xs">
             <div className="flex flex-col truncate max-w-[130px]">
-              <span className="font-semibold text-zinc-300 truncate">{user?.username}</span>
-              <span className="text-[10px] text-zinc-500 truncate">{user?.email}</span>
+              <span className="font-semibold text-gray-700 truncate">{user?.username}</span>
+              <span className="text-[10px] text-[#18181B]0 truncate">{user?.email}</span>
             </div>
             <button
               onClick={() => {
                 logout();
                 navigate('/login');
               }}
-              className="text-zinc-500 hover:text-red-400 p-1"
+              className="text-[#18181B]0 hover:text-red-400 p-1"
               title="Logout"
             >
               <LogOut className="h-3.5 w-3.5" />
@@ -320,32 +320,32 @@ export const WorkspaceLayout: React.FC = () => {
       </aside>
 
       {/* 2. Main Workspace View Area */}
-      <main className="flex-1 flex flex-col h-full bg-zinc-950 overflow-hidden relative">
+      <main className="flex-1 flex flex-col h-full bg-white overflow-hidden relative">
         <Outlet />
 
         {/* Voice Calling Signaling Floating Modal Overlay */}
         {incomingCall && (
-          <div className="absolute bottom-6 right-6 z-50 bg-zinc-900 border-2 border-emerald-500 p-4 rounded-xl shadow-2xl w-80 animate-bounce">
+          <div className="absolute bottom-6 right-6 z-50 bg-white border-2 border-gray-200 p-4 rounded-xl shadow-2xl w-80 animate-bounce">
             <div className="flex items-center gap-3">
-              <div className="bg-emerald-500/20 text-emerald-400 p-3 rounded-full animate-pulse">
+              <div className="bg-gray-100 text-[#18181B] p-3 rounded-full animate-pulse">
                 <PhoneCall className="h-6 w-6" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-sm text-zinc-100">Incoming Huddle Call</h4>
-                <p className="text-xs text-zinc-400 truncate">{incomingCall.callerEmail}</p>
+                <h4 className="font-bold text-sm text-[#18181B]">Incoming Huddle Call</h4>
+                <p className="text-xs text-gray-500 truncate">{incomingCall.callerEmail}</p>
               </div>
             </div>
             <div className="mt-4 flex gap-2">
               <Button
-                onClick={acceptCall}
-                className="flex-1 bg-emerald-500 text-zinc-950 hover:bg-emerald-400 font-semibold text-xs"
+                onClick={() => acceptCall(false)}
+                className="flex-1 bg-[#18181B] text-white hover:bg-black font-semibold text-xs"
               >
                 Accept
               </Button>
               <Button
                 onClick={rejectCall}
                 variant="outline"
-                className="flex-1 border-zinc-700 hover:bg-zinc-800 text-zinc-300 text-xs"
+                className="flex-1 border-gray-200 hover:bg-gray-100 text-gray-700 text-xs"
               >
                 Decline
               </Button>
@@ -354,11 +354,11 @@ export const WorkspaceLayout: React.FC = () => {
         )}
 
         {callStatus !== 'idle' && !incomingCall && (
-          <div className="absolute bottom-6 right-6 z-50 bg-zinc-900 border border-sky-500 p-4 rounded-xl shadow-2xl w-80">
+          <div className="absolute bottom-6 right-6 z-50 bg-white border border-[#18181B] p-4 rounded-xl shadow-2xl w-80">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-                <span className="text-xs text-zinc-400 uppercase tracking-wider font-semibold">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#18181B] animate-ping"></span>
+                <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
                   {callStatus === 'calling' ? 'Dialing Connection...' : 'Voice Huddle Connected'}
                 </span>
               </div>
@@ -370,11 +370,11 @@ export const WorkspaceLayout: React.FC = () => {
                 <PhoneOff className="h-4 w-4" />
               </button>
             </div>
-            <div className="mt-2 flex items-center justify-between bg-zinc-950/60 p-2 rounded">
-              <span className="text-xs font-mono text-zinc-300">
+            <div className="mt-2 flex items-center justify-between bg-white/60 p-2 rounded">
+              <span className="text-xs font-mono text-gray-700">
                 {activeSession?.receiver?.email || 'Huddle participant'}
               </span>
-              <Volume2 className="h-4 w-4 text-sky-400" />
+              <Volume2 className="h-4 w-4 text-[#18181B]" />
             </div>
           </div>
         )}
@@ -388,31 +388,31 @@ export const WorkspaceLayout: React.FC = () => {
       {/* 3. Add Channel Modal */}
       {showAddChannel && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-zinc-900 border border-zinc-800 max-w-md w-full rounded-xl p-6 space-y-4">
-            <h3 className="text-lg font-bold text-sky-400">Create Threaded Channel</h3>
+          <div className="bg-white border border-gray-200 max-w-md w-full rounded-xl p-6 space-y-4">
+            <h3 className="text-lg font-bold text-[#18181B]">Create Threaded Channel</h3>
             <form onSubmit={handleCreateChannel} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="ch-name" className="text-zinc-300">Channel Name</Label>
-                <div className="flex items-center gap-1 bg-zinc-950 border border-zinc-800 rounded px-3 py-0.5">
-                  <span className="text-zinc-500 text-sm">#</span>
+                <Label htmlFor="ch-name" className="text-gray-700">Channel Name</Label>
+                <div className="flex items-center gap-1 bg-white border border-gray-200 rounded px-3 py-0.5">
+                  <span className="text-[#18181B]0 text-sm">#</span>
                   <input
                     id="ch-name"
                     required
                     placeholder="e.g. design-assets"
                     value={newChannelName}
                     onChange={(e) => setNewChannelName(e.target.value)}
-                    className="flex-1 bg-transparent py-2 text-sm text-zinc-100 focus:outline-none"
+                    className="flex-1 bg-transparent py-2 text-sm text-[#18181B] focus:outline-none"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ch-desc" className="text-zinc-300">Description</Label>
+                <Label htmlFor="ch-desc" className="text-gray-700">Description</Label>
                 <Input
                   id="ch-desc"
                   placeholder="Topic focus of this channel"
                   value={newChannelDesc}
                   onChange={(e) => setNewChannelDesc(e.target.value)}
-                  className="bg-zinc-950 border-zinc-800 text-zinc-100"
+                  className="bg-white border-gray-200 text-[#18181B]"
                 />
               </div>
               <div className="flex items-center gap-2 py-2">
@@ -421,9 +421,9 @@ export const WorkspaceLayout: React.FC = () => {
                   id="ch-private"
                   checked={newChannelPrivate}
                   onChange={(e) => setNewChannelPrivate(e.target.checked)}
-                  className="rounded border-zinc-800 bg-zinc-950 text-sky-500 focus:ring-sky-500"
+                  className="rounded border-gray-200 bg-white text-[#18181B] focus:ring-[#18181B]"
                 />
-                <Label htmlFor="ch-private" className="text-zinc-300">Private Channel</Label>
+                <Label htmlFor="ch-private" className="text-gray-700">Private Channel</Label>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -431,11 +431,11 @@ export const WorkspaceLayout: React.FC = () => {
                   type="button"
                   variant="outline"
                   onClick={() => setShowAddChannel(false)}
-                  className="border-zinc-700 hover:bg-zinc-800 text-zinc-300"
+                  className="border-gray-200 hover:bg-gray-100 text-gray-700"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-sky-500 text-zinc-950 hover:bg-sky-400 font-bold">
+                <Button type="submit" className="bg-[#18181B] text-white hover:bg-black font-bold">
                   Create Channel
                 </Button>
               </div>

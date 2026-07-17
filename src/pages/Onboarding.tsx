@@ -57,27 +57,25 @@ export const Onboarding: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4 text-zinc-50 py-12">
-      <div className="mb-8 flex items-center gap-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500 text-zinc-950 font-bold text-xl">
-          ⬢
-        </div>
-        <span className="text-2xl font-bold tracking-tight text-zinc-100">Silo Onboarding</span>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#F8F9FA] px-4 text-[#18181B] py-12 font-sans">
+      <div className="mb-10 flex items-center gap-3">
+        <img src="/silo.png" alt="SILO Logo" className="h-8 w-auto object-contain" />
+        <span className="text-2xl font-bold tracking-tight text-[#18181B] font-['Outfit']">Silo Onboarding</span>
       </div>
 
       <div className="grid w-full max-w-4xl gap-8 md:grid-cols-2">
         {/* Create Workspace */}
-        <Card className="border-zinc-800 bg-zinc-900 text-zinc-100">
+        <Card className="border-gray-200 bg-white text-[#18181B] shadow-sm rounded-[1.5rem]">
           <CardHeader>
-            <CardTitle className="text-xl text-sky-400">Create a New Workspace</CardTitle>
-            <CardDescription className="text-zinc-400">
-              Set up a private, collaborative tenant for your software engineering team.
+            <CardTitle className="text-xl text-[#18181B] font-['Outfit']">Create a New Workspace</CardTitle>
+            <CardDescription className="text-gray-500">
+              Set up a private, collaborative space for your team.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleCreateWorkspace} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-zinc-300">Workspace Name</Label>
+                <Label htmlFor="name" className="text-[#18181B] font-medium">Workspace Name</Label>
                 <Input
                   id="name"
                   placeholder="e.g. Acme Corporation"
@@ -87,25 +85,25 @@ export const Onboarding: React.FC = () => {
                     // Auto-slugify
                     setWorkspaceSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''));
                   }}
-                  className="bg-zinc-950 border-zinc-800 focus-visible:ring-sky-500 text-zinc-100"
+                  className="bg-white border-gray-200 focus-visible:ring-[#18181B] text-[#18181B] rounded-lg"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="slug" className="text-zinc-300">Workspace URL Slug</Label>
-                <div className="flex items-center gap-1 bg-zinc-950 border border-zinc-800 rounded-md px-3">
-                  <span className="text-zinc-500 text-sm">silo.app/w/</span>
+                <Label htmlFor="slug" className="text-[#18181B] font-medium">Workspace URL Slug</Label>
+                <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 focus-within:ring-1 focus-within:ring-[#18181B]">
+                  <span className="text-gray-400 text-sm font-medium">silo.app/w/</span>
                   <input
                     id="slug"
                     placeholder="acme-corp"
                     value={workspaceSlug}
                     onChange={(e) => setWorkspaceSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, ''))}
-                    className="flex-1 bg-transparent py-2 text-sm focus:outline-none text-zinc-100"
+                    className="flex-1 bg-transparent py-2 text-sm focus:outline-none text-[#18181B]"
                   />
                 </div>
               </div>
 
-              <Button type="submit" disabled={loading} className="w-full bg-sky-500 text-zinc-950 hover:bg-sky-400 font-bold">
+              <Button type="submit" disabled={loading} className="w-full bg-[#18181B] text-white hover:bg-black font-semibold rounded-full h-10 mt-2 transition-all">
                 {loading ? 'Creating...' : 'Create Workspace'}
               </Button>
             </form>
@@ -113,27 +111,27 @@ export const Onboarding: React.FC = () => {
         </Card>
 
         {/* Join Workspace */}
-        <Card className="border-zinc-800 bg-zinc-900 text-zinc-100">
+        <Card className="border-gray-200 bg-white text-[#18181B] shadow-sm rounded-[1.5rem]">
           <CardHeader>
-            <CardTitle className="text-xl text-emerald-400">Join Existing Workspace</CardTitle>
-            <CardDescription className="text-zinc-400">
-              Enter your invitation token/UUID key to connect with an established team.
+            <CardTitle className="text-xl text-[#18181B] font-['Outfit']">Join Existing Workspace</CardTitle>
+            <CardDescription className="text-gray-500">
+              Enter your invitation token to connect with an established team.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleAcceptInvite} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="token" className="text-zinc-300">Invitation Token</Label>
+                <Label htmlFor="token" className="text-[#18181B] font-medium">Invitation Token</Label>
                 <Input
                   id="token"
-                  placeholder="Paste UUID token here"
+                  placeholder="Paste token here"
                   value={joinToken}
                   onChange={(e) => setJoinToken(e.target.value)}
-                  className="bg-zinc-950 border-zinc-800 focus-visible:ring-emerald-500 text-zinc-100 font-mono text-xs"
+                  className="bg-white border-gray-200 focus-visible:ring-[#18181B] text-[#18181B] font-mono text-sm rounded-lg"
                 />
               </div>
 
-              <Button type="submit" disabled={loading} className="w-full bg-emerald-500 text-zinc-950 hover:bg-emerald-400 font-bold mt-8">
+              <Button type="submit" disabled={loading} className="w-full bg-white text-[#18181B] border border-gray-200 hover:bg-gray-50 font-semibold rounded-full h-10 mt-8 transition-all">
                 {loading ? 'Accepting...' : 'Accept Invitation & Join'}
               </Button>
             </form>
@@ -143,7 +141,7 @@ export const Onboarding: React.FC = () => {
 
       <button
         onClick={() => navigate('/dashboard')}
-        className="mt-8 text-sm text-zinc-400 hover:text-zinc-200 underline"
+        className="mt-10 text-sm font-medium text-gray-500 hover:text-[#18181B] transition-colors"
       >
         Back to Dashboard
       </button>

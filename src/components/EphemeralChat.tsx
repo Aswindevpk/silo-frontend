@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useWebSocket } from '@/context/WebSocketContext';
 import { MessageSquare, X, Send } from 'lucide-react';
-import { Button } from './ui/button';
+
 
 interface Message {
   id: string;
@@ -64,9 +64,7 @@ export const EphemeralChat: React.FC<EphemeralChatProps> = ({ targetEmail, onClo
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleStartChat = (e: React.FormEvent) => {
-    e.preventDefault();
-  };
+
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();

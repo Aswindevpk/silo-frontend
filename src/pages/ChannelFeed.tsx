@@ -172,8 +172,8 @@ export const ChannelFeed: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex-grow flex items-center justify-center bg-zinc-950 text-zinc-400">
-        <Loader2 className="h-6 w-6 animate-spin text-sky-500" />
+      <div className="flex-grow flex items-center justify-center bg-white text-gray-500">
+        <Loader2 className="h-6 w-6 animate-spin text-[#18181B]" />
       </div>
     );
   }
@@ -181,15 +181,15 @@ export const ChannelFeed: React.FC = () => {
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* 1. Timeline Feed */}
-      <section className="flex-1 flex flex-col min-w-0 h-full border-r border-zinc-800">
+      <section className="flex-1 flex flex-col min-w-0 h-full border-r border-gray-200">
         {/* Top Navbar Header */}
-        <div className="h-16 px-6 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/60 shrink-0">
+        <div className="h-16 px-6 border-b border-gray-200 flex items-center justify-between bg-white/60 shrink-0">
           <div>
-            <div className="flex items-center gap-1 font-bold text-zinc-100 text-lg">
-              <Hash className="h-5 w-5 text-sky-400 shrink-0" />
+            <div className="flex items-center gap-1 font-bold text-[#18181B] text-lg">
+              <Hash className="h-5 w-5 text-[#18181B] shrink-0" />
               <span>{channel?.name}</span>
             </div>
-            <p className="text-xs text-zinc-400 truncate max-w-[400px]">
+            <p className="text-xs text-gray-500 truncate max-w-[400px]">
               {channel?.description || 'Collaborative engineering discussion thread.'}
             </p>
           </div>
@@ -198,7 +198,7 @@ export const ChannelFeed: React.FC = () => {
             {/* Live Huddle actions */}
             <Button
               onClick={() => setShowCallDialer(true)}
-              className="bg-emerald-500 text-zinc-950 hover:bg-emerald-400 text-xs font-bold flex items-center gap-1.5 h-9"
+              className="bg-[#18181B] text-white hover:bg-black text-xs font-bold flex items-center gap-1.5 h-9"
             >
               <PhoneCall className="h-4 w-4" />
               Join Voice Huddle
@@ -208,13 +208,13 @@ export const ChannelFeed: React.FC = () => {
 
         {/* Feed List */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          <div className="flex justify-between items-center pb-2 border-b border-zinc-800/60">
-            <span className="text-sm font-semibold text-zinc-400">
+          <div className="flex justify-between items-center pb-2 border-b border-gray-200/60">
+            <span className="text-sm font-semibold text-gray-500">
               {topics.length} active discussion threads
             </span>
             <Button
               onClick={() => setShowAddTopic(true)}
-              className="bg-sky-500 text-zinc-950 hover:bg-sky-400 text-xs font-bold"
+              className="bg-[#18181B] text-white hover:bg-black text-xs font-bold"
             >
               + New Topic Thread
             </Button>
@@ -222,9 +222,9 @@ export const ChannelFeed: React.FC = () => {
 
           {topics.length === 0 ? (
             <div className="text-center py-16 space-y-2">
-              <MessageSquare className="h-12 w-12 mx-auto text-zinc-600" />
-              <h4 className="font-bold text-zinc-400">No active discussions</h4>
-              <p className="text-xs text-zinc-500 max-w-sm mx-auto">
+              <MessageSquare className="h-12 w-12 mx-auto text-gray-400" />
+              <h4 className="font-bold text-gray-500">No active discussions</h4>
+              <p className="text-xs text-[#18181B]0 max-w-sm mx-auto">
                 Create a new topic thread to start collaborating asynchronously with your workspace team.
               </p>
             </div>
@@ -238,23 +238,23 @@ export const ChannelFeed: React.FC = () => {
                     onClick={() => handleOpenThread(topic)}
                     className={`p-4 rounded-xl border transition-all cursor-pointer text-left ${
                       isSelected
-                        ? 'border-sky-500/50 bg-sky-950/20'
-                        : 'border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800/40'
+                        ? 'border-[#18181B]/50 bg-gray-50'
+                        : 'border-gray-200 bg-white/60 hover:bg-gray-100/40'
                     }`}
                   >
-                    <div className="flex justify-between text-[11px] text-zinc-500 mb-1">
+                    <div className="flex justify-between text-[11px] text-[#18181B]0 mb-1">
                       <span>
-                        Thread Owner: <strong className="text-zinc-400">@{topic.created_by?.username || 'member'}</strong>
+                        Thread Owner: <strong className="text-gray-500">@{topic.created_by?.username || 'member'}</strong>
                       </span>
                       <span>
                         {topic.created_at ? new Date(topic.created_at).toLocaleDateString() : 'Active'}
                       </span>
                     </div>
-                    <h4 className="font-bold text-zinc-100 text-sm mb-1">{topic.title}</h4>
-                    <p className="text-xs text-zinc-400 line-clamp-2 mb-3">{topic.content}</p>
+                    <h4 className="font-bold text-[#18181B] text-sm mb-1">{topic.title}</h4>
+                    <p className="text-xs text-gray-500 line-clamp-2 mb-3">{topic.content}</p>
 
-                    <div className="flex items-center justify-between text-xs pt-2 border-t border-zinc-800/40">
-                      <div className="flex items-center gap-1.5 text-sky-400 hover:text-sky-300 font-semibold">
+                    <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-200/40">
+                      <div className="flex items-center gap-1.5 text-[#18181B] hover:text-[#18181B] font-semibold">
                         <span>{topic.replies_count || 0} replies</span>
                         <ChevronRight className="h-3 w-3" />
                       </div>
@@ -269,14 +269,14 @@ export const ChannelFeed: React.FC = () => {
 
       {/* 2. Right Thread Panel Drawer */}
       {activeTopic && (
-        <aside className="w-96 border-l border-zinc-800 bg-zinc-900/40 flex flex-col h-full shrink-0">
-          <div className="h-16 px-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/60 shrink-0">
-            <span className="font-bold text-xs uppercase tracking-wider text-zinc-400">
+        <aside className="w-96 border-l border-gray-200 bg-white/40 flex flex-col h-full shrink-0">
+          <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between bg-white/60 shrink-0">
+            <span className="font-bold text-xs uppercase tracking-wider text-gray-500">
               Discussion Thread
             </span>
             <button
               onClick={() => setActiveTopic(null)}
-              className="text-zinc-500 hover:text-zinc-300 p-1"
+              className="text-[#18181B]0 hover:text-gray-700 p-1"
             >
               <X className="h-4 w-4" />
             </button>
@@ -285,32 +285,32 @@ export const ChannelFeed: React.FC = () => {
           {/* Messages list */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {/* Original Post */}
-            <div className="bg-zinc-900 border border-zinc-800 p-3 rounded-lg space-y-2">
-              <div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
-                <div className="h-4 w-4 rounded-full bg-sky-500 text-zinc-950 font-bold text-[8px] flex items-center justify-center uppercase">
+            <div className="bg-white border border-gray-200 p-3 rounded-lg space-y-2">
+              <div className="flex items-center gap-1.5 text-[11px] text-[#18181B]0">
+                <div className="h-4 w-4 rounded-full bg-[#18181B] text-white font-bold text-[8px] flex items-center justify-center uppercase">
                   {activeTopic.created_by?.username?.slice(0, 2) || 'M'}
                 </div>
                 <span>@{activeTopic.created_by?.username || 'member'}</span>
               </div>
-              <h5 className="font-bold text-sm text-zinc-100">{activeTopic.title}</h5>
-              <p className="text-xs text-zinc-400">{activeTopic.content}</p>
+              <h5 className="font-bold text-sm text-[#18181B]">{activeTopic.title}</h5>
+              <p className="text-xs text-gray-500">{activeTopic.content}</p>
             </div>
 
             {/* Replies List */}
             <div className="space-y-3">
               {loadingReplies ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
+                  <Loader2 className="h-4 w-4 animate-spin text-[#18181B]0" />
                 </div>
               ) : replies.length === 0 ? (
-                <p className="text-[11px] text-zinc-500 text-center py-6">
+                <p className="text-[11px] text-[#18181B]0 text-center py-6">
                   No replies yet. Be the first to comment!
                 </p>
               ) : (
                 replies.map((rep) => (
-                  <div key={rep.id} className="bg-zinc-950/40 p-2.5 rounded-lg border border-zinc-800/40 text-xs">
-                    <div className="flex items-center gap-1.5 text-[10px] text-zinc-500 mb-1">
-                      <div className="h-3.5 w-3.5 rounded-full bg-zinc-700 text-zinc-300 font-bold text-[7px] flex items-center justify-center uppercase">
+                  <div key={rep.id} className="bg-white/40 p-2.5 rounded-lg border border-gray-200/40 text-xs">
+                    <div className="flex items-center gap-1.5 text-[10px] text-[#18181B]0 mb-1">
+                      <div className="h-3.5 w-3.5 rounded-full bg-gray-200 text-gray-700 font-bold text-[7px] flex items-center justify-center uppercase">
                         {rep.created_by?.username?.slice(0, 2) || 'R'}
                       </div>
                       <span className="font-semibold">@{rep.created_by?.username || 'replier'}</span>
@@ -318,7 +318,7 @@ export const ChannelFeed: React.FC = () => {
                         {new Date(rep.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <p className="text-zinc-300 leading-relaxed">{rep.content}</p>
+                    <p className="text-gray-700 leading-relaxed">{rep.content}</p>
                   </div>
                 ))
               )}
@@ -326,11 +326,11 @@ export const ChannelFeed: React.FC = () => {
           </div>
 
           {/* Post Reply Input Form */}
-          <div className="px-4 py-1 text-[10px] text-zinc-500 italic h-4">
+          <div className="px-4 py-1 text-[10px] text-[#18181B]0 italic h-4">
             {Object.values(activeTypers).some(Boolean) && "Someone is typing..."}
           </div>
-          <form onSubmit={handlePostReply} className="p-3 border-t border-zinc-800 bg-zinc-900/80">
-            <div className="flex items-center gap-1 bg-zinc-950 border border-zinc-800 rounded px-2">
+          <form onSubmit={handlePostReply} className="p-3 border-t border-gray-200 bg-white/80">
+            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded px-2">
               <input
                 placeholder="Reply to this thread..."
                 value={newReplyContent}
@@ -339,12 +339,12 @@ export const ChannelFeed: React.FC = () => {
                   updateTypingStatus(e.target.value.length > 0);
                 }}
                 onBlur={() => updateTypingStatus(false)}
-                className="flex-1 bg-transparent py-2 text-xs focus:outline-none text-zinc-100"
+                className="flex-1 bg-transparent py-2 text-xs focus:outline-none text-[#18181B]"
               />
               <button
                 type="submit"
                 disabled={!newReplyContent.trim()}
-                className="text-sky-500 hover:text-sky-400 p-1.5 disabled:text-zinc-600"
+                className="text-[#18181B] hover:text-[#18181B] p-1.5 disabled:text-gray-400"
               >
                 <Send className="h-4 w-4" />
               </button>
@@ -356,23 +356,23 @@ export const ChannelFeed: React.FC = () => {
       {/* 3. New Topic Modal */}
       {showAddTopic && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-zinc-900 border border-zinc-800 max-w-lg w-full rounded-xl p-6 space-y-4">
-            <h3 className="text-lg font-bold text-sky-400">Launch New Discussion Thread</h3>
+          <div className="bg-white border border-gray-200 max-w-lg w-full rounded-xl p-6 space-y-4">
+            <h3 className="text-lg font-bold text-[#18181B]">Launch New Discussion Thread</h3>
             <form onSubmit={handleCreateTopic} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="topic-title" className="text-zinc-300">Topic Title</Label>
+                <Label htmlFor="topic-title" className="text-gray-700">Topic Title</Label>
                 <Input
                   id="topic-title"
                   required
                   placeholder="e.g. Postgres Connection Pool Leak"
                   value={newTopicTitle}
                   onChange={(e) => setNewTopicTitle(e.target.value)}
-                  className="bg-zinc-950 border-zinc-800 text-zinc-100"
+                  className="bg-white border-gray-200 text-[#18181B]"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="topic-content" className="text-zinc-300">Detailed Description / Question</Label>
+                <Label htmlFor="topic-content" className="text-gray-700">Detailed Description / Question</Label>
                 <textarea
                   id="topic-content"
                   required
@@ -380,7 +380,7 @@ export const ChannelFeed: React.FC = () => {
                   placeholder="Explain the background context, options explored, and explicit questions..."
                   value={newTopicContent}
                   onChange={(e) => setNewTopicContent(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  className="w-full bg-white border border-gray-200 rounded p-2 text-sm text-[#18181B] focus:outline-none focus:ring-1 focus:ring-[#18181B]"
                 />
               </div>
 
@@ -389,11 +389,11 @@ export const ChannelFeed: React.FC = () => {
                   type="button"
                   variant="outline"
                   onClick={() => setShowAddTopic(false)}
-                  className="border-zinc-700 hover:bg-zinc-800 text-zinc-300"
+                  className="border-gray-200 hover:bg-gray-100 text-gray-700"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-sky-500 text-zinc-950 hover:bg-sky-400 font-bold">
+                <Button type="submit" className="bg-[#18181B] text-white hover:bg-black font-bold">
                   Publish Topic
                 </Button>
               </div>
@@ -405,17 +405,17 @@ export const ChannelFeed: React.FC = () => {
       {/* 4. Voice Huddle Dialing Modal */}
       {showCallDialer && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-zinc-900 border border-zinc-800 max-w-sm w-full rounded-xl p-6 space-y-4">
+          <div className="bg-white border border-gray-200 max-w-sm w-full rounded-xl p-6 space-y-4">
             <div className="text-center">
-              <PhoneCall className="h-8 w-8 text-emerald-400 mx-auto mb-2" />
-              <h3 className="text-lg font-bold text-zinc-100">Start Voice Call</h3>
-              <p className="text-xs text-zinc-400">
+              <PhoneCall className="h-8 w-8 text-[#18181B] mx-auto mb-2" />
+              <h3 className="text-lg font-bold text-[#18181B]">Start Voice Call</h3>
+              <p className="text-xs text-gray-500">
                 Dial another member in this workspace using WebRTC.
               </p>
             </div>
             <form onSubmit={handleStartCall} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="dial-email" className="text-zinc-300">Target Member Email</Label>
+                <Label htmlFor="dial-email" className="text-gray-700">Target Member Email</Label>
                 <Input
                   id="dial-email"
                   required
@@ -423,7 +423,7 @@ export const ChannelFeed: React.FC = () => {
                   placeholder="colleague@example.com"
                   value={dialerEmail}
                   onChange={(e) => setDialerEmail(e.target.value)}
-                  className="bg-zinc-950 border-zinc-800 text-zinc-100"
+                  className="bg-white border-gray-200 text-[#18181B]"
                 />
               </div>
 
@@ -432,13 +432,13 @@ export const ChannelFeed: React.FC = () => {
                   type="button"
                   variant="outline"
                   onClick={() => setShowCallDialer(false)}
-                  className="flex-1 border-zinc-700 hover:bg-zinc-800 text-zinc-300"
+                  className="flex-1 border-gray-200 hover:bg-gray-100 text-gray-700"
                 >
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
-                  className="flex-1 bg-emerald-500 text-zinc-950 hover:bg-emerald-400 font-bold"
+                  className="flex-1 bg-[#18181B] text-white hover:bg-black font-bold"
                   onClick={(e) => {
                     e.preventDefault();
                     if (!workspaceSlug || !dialerEmail) return;
@@ -450,7 +450,7 @@ export const ChannelFeed: React.FC = () => {
                 </Button>
                 <Button 
                   type="submit" 
-                  className="flex-1 bg-sky-500 text-zinc-950 hover:bg-sky-400 font-bold"
+                  className="flex-1 bg-[#18181B] text-white hover:bg-black font-bold"
                   onClick={(e) => {
                     e.preventDefault();
                     if (!workspaceSlug || !dialerEmail) return;

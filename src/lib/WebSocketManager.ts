@@ -6,8 +6,8 @@ class WebSocketManager {
   private socket: WebSocket | null = null;
   private isConnecting = false;
   private backoffCount = 0;
-  private pingInterval: NodeJS.Timeout | null = null;
-  private reconnectTimeout: NodeJS.Timeout | null = null;
+  private pingInterval: ReturnType<typeof setInterval> | null = null;
+  private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   
   private messageHandlers = new Map<string, Map<string, Set<Handler>>>();
   private stateListeners = new Set<(isConnected: boolean, isAuthenticated: boolean) => void>();
@@ -23,7 +23,11 @@ class WebSocketManager {
 
     this.intentionalDisconnect = false;
     this.isConnecting = true;
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/users/';
+    let wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/users/';
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      wsUrl += `?token=${token}`;
+    }
     this.socket = new WebSocket(wsUrl);
 
     this.socket.onopen = () => {

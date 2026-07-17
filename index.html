@@ -2,11 +2,66 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>silo-frontend</title>
+    
+    <!-- SEO Meta Tags -->
+    <title>SILO | The Workspace Collaboration Platform for Focused Teams</title>
+    <meta name="description" content="Organize discussions into channels, track topics to resolution, and jump into instant 1-on-1 calls. SILO is the workspace for teams that demand focus." />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://example.com/" />
+
+    <!-- Open Graph Tags -->
+    <meta property="og:title" content="SILO | The Workspace Collaboration Platform" />
+    <meta property="og:description" content="Organize discussions, track topics, and jump into instant 1-on-1 calls." />
+    <meta property="og:image" content="https://example.com/og-image.jpg" />
+    <meta property="og:url" content="https://example.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="SILO" />
+
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="SILO | The Workspace Collaboration Platform" />
+    <meta name="twitter:description" content="Organize discussions, track topics, and jump into instant 1-on-1 calls." />
+    <meta name="twitter:image" content="https://example.com/og-image.jpg" />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Silo" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#FFFFFF" />
+
+    <!-- Google Fonts: Outfit & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "SILO",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Workspace collaboration platform with channels, threaded topics, and instant 1-on-1 calls.",
+      "url": "https://example.com/",
+      "publisher": {
+        "@type": "Organization",
+        "name": "Silo Inc."
+      }
+    }
+    </script>
   </head>
-  <body>
+  <body class="antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

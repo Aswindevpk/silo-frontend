@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useCall } from '@/context/CallContext';
-import { Phone, PhoneOff, PhoneCall, Mic, MicOff, Video, VideoOff } from 'lucide-react';
+import { PhoneOff, PhoneCall, Mic, MicOff, Video, VideoOff } from 'lucide-react';
 
 export const CallWidget: React.FC = () => {
   const {
@@ -31,7 +31,7 @@ export const CallWidget: React.FC = () => {
 
   // Duration timer
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (callStatus === 'connected') {
       interval = setInterval(() => setDuration(prev => prev + 1), 1000);
     } else {
@@ -79,7 +79,7 @@ export const CallWidget: React.FC = () => {
                 Decline
               </button>
               <button
-                onClick={acceptCall}
+                onClick={() => acceptCall(false)}
                 className="flex-1 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 font-medium transition shadow-lg shadow-green-500/20"
               >
                 Accept

@@ -126,8 +126,8 @@ export const BillingSettings: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex-grow flex items-center justify-center bg-zinc-950 text-zinc-400">
-        <Loader2 className="h-6 w-6 animate-spin text-sky-500" />
+      <div className="flex-grow flex items-center justify-center bg-white text-gray-500">
+        <Loader2 className="h-6 w-6 animate-spin text-[#18181B]" />
       </div>
     );
   }
@@ -137,16 +137,16 @@ export const BillingSettings: React.FC = () => {
   const isAtLimit = !isPremium && memberCount >= 2;
 
   return (
-    <div className="flex-grow overflow-y-auto p-8 bg-zinc-950 text-zinc-100">
+    <div className="flex-grow overflow-y-auto p-8 bg-white text-[#18181B]">
       <div className="max-w-4xl mx-auto space-y-8">
         
         {/* Header Title */}
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-            <CreditCard className="h-6 w-6 text-sky-400" />
+          <h1 className="text-2xl font-bold text-[#18181B] flex items-center gap-2">
+            <CreditCard className="h-6 w-6 text-[#18181B]" />
             Billing & Membership Settings
           </h1>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-gray-500">
             Manage organization members, invite engineers, and control subscription renewal schedules.
           </p>
         </div>
@@ -157,7 +157,7 @@ export const BillingSettings: React.FC = () => {
             <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
             <div>
               <h4 className="font-bold text-sm text-amber-400">Free Tier Limit Reached</h4>
-              <p className="text-xs text-zinc-400 mt-1">
+              <p className="text-xs text-gray-500 mt-1">
                 You have reached the maximum of 2 members allowed on the Free Plan. To invite more collaborators, please upgrade this workspace to the Premium Plan.
               </p>
             </div>
@@ -166,39 +166,39 @@ export const BillingSettings: React.FC = () => {
 
         <div className="grid gap-6 md:grid-cols-3">
           {/* Status Box */}
-          <Card className="border-zinc-800 bg-zinc-900 text-zinc-100">
+          <Card className="border-gray-200 bg-white text-[#18181B]">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-zinc-400 uppercase tracking-wider">Plan Status</CardTitle>
+              <CardTitle className="text-sm text-gray-500 uppercase tracking-wider">Plan Status</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-baseline gap-1.5">
                 <span className="text-3xl font-extrabold tracking-tight">
                   {isPremium ? 'Premium' : 'Free'}
                 </span>
-                <span className="text-xs text-zinc-500">Tier</span>
+                <span className="text-xs text-[#18181B]0">Tier</span>
               </div>
               <div className="flex items-center gap-1.5 text-xs">
-                <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                <span className="text-zinc-400">
-                  Status: <strong className="text-emerald-400">Active</strong>
+                <ShieldCheck className="h-4 w-4 text-[#18181B]" />
+                <span className="text-gray-500">
+                  Status: <strong className="text-[#18181B]">Active</strong>
                 </span>
               </div>
             </CardContent>
           </Card>
 
           {/* Autopay Control Box */}
-          <Card className="border-zinc-800 bg-zinc-900 text-zinc-100">
+          <Card className="border-gray-200 bg-white text-[#18181B]">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-zinc-400 uppercase tracking-wider">Autopay Renewal</CardTitle>
+              <CardTitle className="text-sm text-gray-500 uppercase tracking-wider">Autopay Renewal</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-zinc-400">
+                <span className="text-xs text-gray-500">
                   {subscription?.auto_renew ? 'Automatic Renewal Enabled' : 'Expires at end of cycle'}
                 </span>
                 <button
                   onClick={handleToggleAutopay}
-                  className="text-sky-400 hover:text-sky-300 transition-colors"
+                  className="text-[#18181B] hover:text-sky-300 transition-colors"
                 >
                   {subscription?.auto_renew ? (
                     <ToggleRight className="h-9 w-9" />
@@ -207,24 +207,24 @@ export const BillingSettings: React.FC = () => {
                   )}
                 </button>
               </div>
-              <p className="text-[10px] text-zinc-500 leading-tight">
+              <p className="text-[10px] text-[#18181B]0 leading-tight">
                 Disable to prevent automatically charging the saved Stripe payment card.
               </p>
             </CardContent>
           </Card>
 
           {/* Members count Box */}
-          <Card className="border-zinc-800 bg-zinc-900 text-zinc-100">
+          <Card className="border-gray-200 bg-white text-[#18181B]">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-zinc-400 uppercase tracking-wider">Total Members</CardTitle>
+              <CardTitle className="text-sm text-gray-500 uppercase tracking-wider">Total Members</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-baseline gap-1.5">
                 <span className="text-3xl font-extrabold tracking-tight">{memberCount}</span>
-                <span className="text-xs text-zinc-500">/ {!isPremium ? '2 max' : 'unlimited'}</span>
+                <span className="text-xs text-[#18181B]0">/ {!isPremium ? '2 max' : 'unlimited'}</span>
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                <Users className="h-4 w-4 text-sky-400" />
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <Users className="h-4 w-4 text-[#18181B]" />
                 <span>Members list active</span>
               </div>
             </CardContent>
@@ -233,24 +233,24 @@ export const BillingSettings: React.FC = () => {
 
         {/* Detail Panel 1: Upgrade to Premium (Stripe) */}
         {!isPremium && (
-          <Card className="border-sky-950/40 bg-sky-950/10 text-zinc-100">
+          <Card className="border-sky-950/40 bg-sky-950/10 text-[#18181B]">
             <CardHeader>
-              <CardTitle className="text-xl text-sky-400 flex items-center gap-2">
+              <CardTitle className="text-xl text-[#18181B] flex items-center gap-2">
                 <Zap className="h-5 w-5" />
                 Upgrade Workspace to Premium
               </CardTitle>
-              <CardDescription className="text-zinc-400">
+              <CardDescription className="text-gray-500">
                 Unlock unlimited members, voice huddles, and real-time document synchronization features.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="space-y-1">
-                <div className="text-2xl font-bold">$29 <span className="text-xs font-normal text-zinc-400">/ month flat rate</span></div>
-                <p className="text-xs text-zinc-400">Includes secure payment processing powered by Stripe Checkout.</p>
+                <div className="text-2xl font-bold">$29 <span className="text-xs font-normal text-gray-500">/ month flat rate</span></div>
+                <p className="text-xs text-gray-500">Includes secure payment processing powered by Stripe Checkout.</p>
               </div>
               <Button
                 onClick={handleUpgradeSubscription}
-                className="bg-sky-500 text-zinc-950 hover:bg-sky-400 font-extrabold w-full sm:w-auto"
+                className="bg-[#18181B] text-white hover:bg-black font-extrabold w-full sm:w-auto"
               >
                 Upgrade Now
               </Button>
@@ -260,24 +260,24 @@ export const BillingSettings: React.FC = () => {
 
         <div className="grid gap-6 md:grid-cols-2">
           {/* Active Members list */}
-          <Card className="border-zinc-800 bg-zinc-900 text-zinc-100">
+          <Card className="border-gray-200 bg-white text-[#18181B]">
             <CardHeader>
-              <CardTitle className="text-lg text-zinc-100 flex items-center gap-2">
-                <Users className="h-5 w-5 text-sky-400" />
+              <CardTitle className="text-lg text-[#18181B] flex items-center gap-2">
+                <Users className="h-5 w-5 text-[#18181B]" />
                 Workspace Collaborators
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {members.map((member) => (
-                  <div key={member.id} className="flex items-center justify-between p-2.5 rounded bg-zinc-950/40 border border-zinc-800/40">
+                  <div key={member.id} className="flex items-center justify-between p-2.5 rounded bg-white/40 border border-gray-200/40">
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold text-zinc-200">
+                      <div className="text-sm font-semibold text-[#18181B]">
                         @{member.user.username}
                       </div>
-                      <div className="text-xs text-zinc-500 truncate">{member.user.email}</div>
+                      <div className="text-xs text-[#18181B]0 truncate">{member.user.email}</div>
                     </div>
-                    <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded font-mono uppercase">
+                    <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded font-mono uppercase">
                       {member.role}
                     </span>
                   </div>
@@ -287,17 +287,17 @@ export const BillingSettings: React.FC = () => {
           </Card>
 
           {/* Invitation sender */}
-          <Card className="border-zinc-800 bg-zinc-900 text-zinc-100">
+          <Card className="border-gray-200 bg-white text-[#18181B]">
             <CardHeader>
-              <CardTitle className="text-lg text-zinc-100 flex items-center gap-2">
-                <Mail className="h-5 w-5 text-emerald-400" />
+              <CardTitle className="text-lg text-[#18181B] flex items-center gap-2">
+                <Mail className="h-5 w-5 text-[#18181B]" />
                 Invite New Member
               </CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSendInvite} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="invite-email" className="text-zinc-300">Email Address</Label>
+                  <Label htmlFor="invite-email" className="text-gray-700">Email Address</Label>
                   <Input
                     id="invite-email"
                     type="email"
@@ -306,18 +306,18 @@ export const BillingSettings: React.FC = () => {
                     placeholder="engineer@company.com"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    className="bg-zinc-950 border-zinc-800 text-zinc-100"
+                    className="bg-white border-gray-200 text-[#18181B]"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="invite-role" className="text-zinc-300">Permission Role</Label>
+                  <Label htmlFor="invite-role" className="text-gray-700">Permission Role</Label>
                   <select
                     id="invite-role"
                     disabled={isAtLimit}
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded p-2 text-sm text-zinc-100 focus:outline-none"
+                    className="w-full bg-white border border-gray-200 rounded p-2 text-sm text-[#18181B] focus:outline-none"
                   >
                     <option value="MEMBER">Member (Read/Write)</option>
                     <option value="ADMIN">Admin (Manage Channels)</option>
@@ -328,7 +328,7 @@ export const BillingSettings: React.FC = () => {
                 <Button
                   type="submit"
                   disabled={isAtLimit || inviting}
-                  className="w-full bg-emerald-500 text-zinc-950 hover:bg-emerald-400 font-bold"
+                  className="w-full bg-[#18181B] text-white hover:bg-black font-bold"
                 >
                   {inviting ? 'Sending Invite...' : 'Send Invitation Token'}
                 </Button>

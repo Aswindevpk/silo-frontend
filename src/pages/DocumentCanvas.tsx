@@ -86,27 +86,27 @@ If direct WebRTC peer connections fail due to restrictive corporate firewalls, c
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-zinc-950 overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
       {/* Top Navbar Header */}
-      <div className="h-16 px-6 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/60 shrink-0">
+      <div className="h-16 px-6 border-b border-gray-200 flex items-center justify-between bg-white/60 shrink-0">
         <div className="flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-purple-400" />
-          <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider">{docDetails.path}</span>
+          <BookOpen className="h-5 w-5 text-[#18181B]" />
+          <span className="text-xs font-mono text-gray-500 uppercase tracking-wider">{docDetails.path}</span>
         </div>
 
         {/* Sync Indicators */}
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 text-xs text-zinc-400">
+          <span className="flex items-center gap-1.5 text-xs text-gray-500">
             {savingState === 'synced' && (
               <>
-                <Cloud className="h-3.5 w-3.5 text-emerald-400" />
-                <span className="text-emerald-400 font-medium">Cloud Synced</span>
+                <Cloud className="h-3.5 w-3.5 text-[#18181B]" />
+                <span className="text-[#18181B] font-medium">Cloud Synced</span>
               </>
             )}
             {savingState === 'offline-cached' && (
               <>
-                <CheckCircle className="h-3.5 w-3.5 text-sky-400" />
-                <span className="text-sky-400 font-medium">Local Cached</span>
+                <CheckCircle className="h-3.5 w-3.5 text-[#18181B]" />
+                <span className="text-[#18181B] font-medium">Local Cached</span>
               </>
             )}
             {savingState === 'saving' && (
@@ -120,7 +120,7 @@ If direct WebRTC peer connections fail due to restrictive corporate firewalls, c
             onClick={forceCloudSync}
             size="sm"
             variant="outline"
-            className="border-zinc-800 text-zinc-300 hover:bg-zinc-900 text-xs gap-1.5"
+            className="border-gray-200 text-gray-700 hover:bg-white text-xs gap-1.5"
           >
             <Save className="h-3.5 w-3.5" />
             Sync Cloud
@@ -129,19 +129,19 @@ If direct WebRTC peer connections fail due to restrictive corporate firewalls, c
       </div>
 
       {/* Editor Body */}
-      <div className="flex-1 overflow-y-auto p-8 flex justify-center bg-zinc-900/10">
+      <div className="flex-1 overflow-y-auto p-8 flex justify-center bg-white/10">
         <div className="max-w-4xl w-full flex flex-col h-full space-y-4">
           {/* Doc Header Information */}
-          <div className="space-y-2 pb-4 border-b border-zinc-800">
-            <h1 className="text-3xl font-extrabold text-zinc-100 tracking-tight">
+          <div className="space-y-2 pb-4 border-b border-gray-200">
+            <h1 className="text-3xl font-extrabold text-[#18181B] tracking-tight">
               {docDetails.title}
             </h1>
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
+            <div className="flex items-center gap-2 text-xs text-[#18181B]0">
               <span>Created by <strong>@{docDetails.creator}</strong></span>
               <span>•</span>
               <span>Version History #{docDetails.version}</span>
               <span>•</span>
-              <span className="bg-purple-950/40 text-purple-400 px-1.5 py-0.5 rounded font-semibold text-[10px]">
+              <span className="bg-gray-100 text-[#18181B] px-1.5 py-0.5 rounded font-semibold text-[10px]">
                 Offline-Ready (IndexedDB Active)
               </span>
             </div>
@@ -153,7 +153,7 @@ If direct WebRTC peer connections fail due to restrictive corporate firewalls, c
               value={content}
               onChange={handleContentChange}
               placeholder="Start drafting document specifications..."
-              className="flex-1 w-full bg-transparent text-zinc-200 border-none outline-none font-mono text-sm leading-relaxed resize-none focus:ring-0 p-2"
+              className="flex-1 w-full bg-transparent text-[#18181B] border-none outline-none font-mono text-sm leading-relaxed resize-none focus:ring-0 p-2"
             />
           </div>
         </div>

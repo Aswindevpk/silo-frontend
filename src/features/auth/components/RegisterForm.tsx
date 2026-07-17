@@ -7,7 +7,6 @@ import { useRegisterMutation } from '../hooks/queries';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { toast } from 'sonner';
 
 export const RegisterForm: React.FC = () => {
@@ -52,52 +51,39 @@ export const RegisterForm: React.FC = () => {
 
   if (registeredEmail) {
     return (
-      <Card className="w-full max-w-md shadow-lg border-zinc-200/80 dark:border-zinc-800 text-center">
-        <CardHeader>
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-950 dark:text-green-400">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-            </svg>
-          </div>
-          <CardTitle className="text-2xl font-bold tracking-tight mt-4">Check your email</CardTitle>
-          <CardDescription className="text-zinc-500 dark:text-zinc-400">
-            We have sent a verification link to <strong className="text-zinc-900 dark:text-white">{registeredEmail}</strong>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
-            Please click the link in the email to activate your account. Once verified, you can proceed to sign in.
-          </p>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-2">
-          <Button className="w-full" onClick={() => navigate('/login')}>
+      <div className="w-full max-w-md text-center bg-white p-10 rounded-[2.5rem] shadow-[0_0_40px_rgba(0,0,0,0.05)] border border-gray-100">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-50 text-green-600 mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+          </svg>
+        </div>
+        <h2 className="text-3xl font-bold font-['Outfit'] tracking-tight mb-3">Check your email</h2>
+        <p className="text-gray-500 mb-6">
+          We have sent a verification link to <strong className="text-black">{registeredEmail}</strong>. Please click the link to activate your account.
+        </p>
+        
+        <div className="flex flex-col gap-3">
+          <Button className="w-full py-6 rounded-2xl bg-[#18181B] hover:bg-black font-bold text-lg" onClick={() => navigate('/login')}>
             Go to Sign In
           </Button>
           <Link
             to={`/register/verify-email?email=${encodeURIComponent(registeredEmail)}`}
-            className="text-xs text-zinc-500 hover:text-zinc-900 underline dark:text-zinc-400 dark:hover:text-zinc-50"
+            className="text-sm font-medium text-gray-400 hover:text-black transition-colors"
           >
             Manually Verify Email / Resend Email
           </Link>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="w-full max-w-md shadow-lg border-zinc-200/80 dark:border-zinc-800">
-      <CardHeader className="space-y-1 text-center">
-        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0zM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
-          </svg>
-        </div>
-        <CardTitle className="text-2xl font-bold tracking-tight mt-2">Create your Silo Account</CardTitle>
-        <CardDescription className="text-zinc-500 dark:text-zinc-400">
-          Enter your details to register a new account
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4">
+    <div className="w-full max-w-md bg-white p-10 rounded-[2.5rem] shadow-[0_0_40px_rgba(0,0,0,0.05)] border border-gray-100">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-bold font-['Outfit'] tracking-tight mb-2">Create an account</h2>
+        <p className="text-gray-500">Enter your details to get started</p>
+      </div>
+      <div className="grid gap-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
             <FormField
@@ -179,7 +165,7 @@ export const RegisterForm: React.FC = () => {
               )}
             />
 
-            <Button type="submit" className="w-full mt-2" disabled={isSubmitting}>
+            <Button type="submit" className="w-full py-6 mt-4 rounded-2xl bg-[#18181B] hover:bg-black font-bold text-lg" disabled={isSubmitting}>
               {registerMutation.isPending ? 'Creating account...' : 'Create Account'}
             </Button>
           </form>
@@ -191,22 +177,22 @@ export const RegisterForm: React.FC = () => {
           <div className="flex-grow border-t border-zinc-200 dark:border-zinc-800"></div>
         </div>
 
-        <Button variant="outline" className="w-full bg-transparent" onClick={handleGoogleLogin} disabled={isSubmitting}>
-          <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+        <Button variant="outline" className="w-full py-6 rounded-2xl border-gray-200 hover:bg-gray-50 font-bold" onClick={handleGoogleLogin} disabled={isSubmitting}>
+          <svg className="mr-2 h-5 w-5" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
             <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
           </svg>
-          Google
+          Continue with Google
         </Button>
-      </CardContent>
-      <CardFooter className="flex flex-wrap items-center justify-center gap-1 text-sm text-zinc-500 dark:text-zinc-400">
+      </div>
+      <div className="flex flex-wrap items-center justify-center gap-2 mt-8 text-sm text-gray-500">
         <span>Already have an account?</span>
         <Link
           to="/login"
-          className="font-medium text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-50"
+          className="font-bold text-black hover:underline"
         >
           Sign in
         </Link>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 };

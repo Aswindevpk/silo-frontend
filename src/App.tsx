@@ -16,6 +16,11 @@ import { DocumentCanvas } from '@/pages/DocumentCanvas';
 import { BillingSettings } from '@/pages/BillingSettings';
 import { GoogleCallback } from '@/pages/GoogleCallback';
 import { CallWidget } from '@/components/CallWidget';
+import { LandingPage } from '@/pages/LandingPage';
+import { Contact } from '@/pages/Contact';
+import { HowItWorks } from '@/pages/HowItWorks';
+import { Privacy } from '@/pages/Privacy';
+import { Terms } from '@/pages/Terms';
 
 function App() {
   return (
@@ -107,7 +112,11 @@ function App() {
               </Route>
 
               {/* Catch-all & Redirection */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/how-it-works" element={<HowItWorks />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/" element={<LandingPage />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
             <CallWidget />

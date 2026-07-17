@@ -8,9 +8,14 @@ export const useLoginMutation = () => {
     mutationFn: async (data: { email?: string; password?: string }) => {
       return api.login(data);
     },
-    onSuccess: (data) => {
-      localStorage.setItem('user_profile', JSON.stringify(data.user));
-      setUser(data.user);
+    onSuccess: (res: any) => {
+      const user = res?.data?.user || res?.user;
+      const token = res?.data?.token || res?.token;
+      if (user) {
+        localStorage.setItem('user_profile', JSON.stringify(user));
+        if (token) localStorage.setItem('access_token', token);
+        setUser(user);
+      }
     },
   });
 };
@@ -21,9 +26,14 @@ export const useGoogleLoginMutation = () => {
     mutationFn: async (code: string) => {
       return api.googleLogin({ code, redirect_uri: 'postmessage' });
     },
-    onSuccess: (data) => {
-      localStorage.setItem('user_profile', JSON.stringify(data.user));
-      setUser(data.user);
+    onSuccess: (res: any) => {
+      const user = res?.data?.user || res?.user;
+      const token = res?.data?.token || res?.token;
+      if (user) {
+        localStorage.setItem('user_profile', JSON.stringify(user));
+        if (token) localStorage.setItem('access_token', token);
+        setUser(user);
+      }
     },
   });
 };

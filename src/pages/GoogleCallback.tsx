@@ -16,6 +16,9 @@ export const GoogleCallback: React.FC = () => {
         const user = JSON.parse(userJson);
         
         localStorage.setItem('user_profile', JSON.stringify(user));
+        if (user.token) {
+          localStorage.setItem('access_token', user.token);
+        }
 
         toast.success('Successfully logged in with Google!');
         navigate('/dashboard');
