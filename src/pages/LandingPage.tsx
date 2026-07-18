@@ -88,7 +88,7 @@ export const LandingPage = () => {
         </h1>
 
         <p className="text-xl sm:text-2xl text-gray-500 max-w-2xl mb-10 font-light leading-relaxed">
-          Just create a workspace, we'll turn it into a focused hub, complete with threaded discussions, instant video calls, and a distraction-free finish.
+          Silo is a workspace collaboration platform that organizes discussions into channels, tracks topics to resolution, and provides instant video calls.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 z-10 w-full sm:w-auto">
