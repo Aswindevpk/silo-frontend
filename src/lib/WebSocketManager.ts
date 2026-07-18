@@ -1,3 +1,5 @@
+import { API_BASE_URL } from './api';
+
 type StreamNamespace = 'system' | 'chat' | 'calls';
 
 type Handler = (data: any) => void;
@@ -23,7 +25,11 @@ class WebSocketManager {
 
     this.intentionalDisconnect = false;
     this.isConnecting = true;
-    let wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws/users/';
+    
+    let wsUrl = import.meta.env.VITE_WS_URL;
+    if (!wsUrl) {
+      wsUrl = API_BASE_URL.replace(/^http/, 'ws') + '/ws/users/';
+    }
     const token = localStorage.getItem('access_token');
     if (token) {
       wsUrl += `?token=${token}`;

@@ -8,7 +8,14 @@ export const GoogleCallback: React.FC = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
+    const errorMsg = params.get('error');
     const userB64 = params.get('user');
+
+    if (errorMsg) {
+      toast.error(errorMsg);
+      navigate('/login');
+      return;
+    }
 
     if (userB64) {
       try {
