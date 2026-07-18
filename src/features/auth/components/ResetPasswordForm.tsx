@@ -37,7 +37,11 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ token }) =
           toast.success('Password reset successfully!');
         },
         onError: (err: any) => {
-          toast.error(err.message || 'Failed to reset password. The token may be invalid or expired.');
+          if (err.status === 422) {
+            toast.error(err.message || 'Invalid token or password.');
+          } else {
+            toast.error(err.message || 'Failed to reset password. The token may be invalid or expired.');
+          }
         },
       }
     );

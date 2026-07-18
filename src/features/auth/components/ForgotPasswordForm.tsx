@@ -25,12 +25,16 @@ export const ForgotPasswordForm: React.FC = () => {
   const onSubmit = async (values: ForgotPasswordInput) => {
     forgotPasswordMutation.mutate(values.email, {
       onSuccess: () => {
-        toast.success('Password reset link sent! Check your email.');
+        toast.success('If an account with this email exists, a password reset link has been sent.');
         setSubmittedEmail(values.email);
         setIsSent(true);
       },
       onError: (err: any) => {
-        toast.error(err.message || 'Failed to send password reset email.');
+        if (err.status === 429) {
+          toast.error(err.message);
+        } else {
+          toast.error(err.message || 'Failed to send password reset email.');
+        }
       },
     });
   };

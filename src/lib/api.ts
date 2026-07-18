@@ -68,10 +68,12 @@ apiClient.interceptors.response.use(
 
     // Detect 401 Unauthorized and ensure it's not a retry request
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
-      // If it's a login request, don't attempt to refresh token
       if (originalRequest.url?.includes('/api/v1/users/login/')) {
         const apiError = error.response?.data?.detail || error.response?.data?.message || error.message;
-        return Promise.reject(new Error(apiError));
+        const err = new Error(apiError) as any;
+        err.errors = error.response?.data?.errors;
+        err.status = error.response?.status;
+        return Promise.reject(err);
       }
 
       if (isRefreshing) {
@@ -105,7 +107,10 @@ apiClient.interceptors.response.use(
 
     // Normal error handling: extract API message
     const apiError = error.response?.data?.detail || error.response?.data?.message || error.message;
-    return Promise.reject(new Error(apiError));
+    const err = new Error(apiError) as any;
+    err.errors = error.response?.data?.errors;
+    err.status = error.response?.status;
+    return Promise.reject(err);
   }
 );
 

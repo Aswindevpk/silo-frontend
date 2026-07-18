@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '../schemas/schemas';
-import { useLoginMutation } from '../hooks/queries';
+import { useLoginMutation, useResendEmailMutation } from '../hooks/queries';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,42 @@ import { toast } from 'sonner';
 export const LoginForm: React.FC = () => {
   const navigate = useNavigate();
   const loginMutation = useLoginMutation();
+  const resendEmailMutation = useResendEmailMutation();
+
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [cooldownLeft, setCooldownLeft] = useState(0);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval>;
+    if (cooldownLeft > 0) {
+      timer = setInterval(() => {
+        setCooldownLeft((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [cooldownLeft]);
+
+  const handleResend = () => {
+    if (!unverifiedEmail) return;
+    resendEmailMutation.mutate(unverifiedEmail, {
+      onSuccess: () => {
+        toast.success("Verification email resent successfully!");
+        setCooldownLeft(120);
+      },
+      onError: (err: any) => {
+        if (err.status === 429) {
+          const match = err.message?.match(/(\d+)/);
+          const seconds = match ? parseInt(match[0], 10) : 120;
+          setCooldownLeft(seconds);
+          toast.error(err.message);
+        } else {
+          toast.error(err.message || "Failed to resend email.");
+        }
+      }
+    });
+  };
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -29,6 +65,11 @@ export const LoginForm: React.FC = () => {
         navigate('/dashboard');
       },
       onError: (err: any) => {
+        if (err.errors?.code === 'EMAIL_NOT_VERIFIED') {
+          setUnverifiedEmail(values.email);
+        } else {
+          setUnverifiedEmail(null);
+        }
         toast.error(err.message || 'Login failed. Please verify your credentials.');
       },
     });
@@ -99,6 +140,27 @@ export const LoginForm: React.FC = () => {
             <Button type="submit" className="w-full py-6 mt-4 rounded-2xl bg-[#18181B] hover:bg-black font-bold text-lg" disabled={isSubmitting}>
               {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
             </Button>
+
+            {unverifiedEmail && (
+              <div className="mt-2 p-4 bg-orange-50 border border-orange-100 rounded-2xl flex flex-col items-center">
+                <p className="text-sm text-orange-800 text-center mb-3">
+                  Your email is not verified. Please check your inbox or resend the link.
+                </p>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full border-orange-200 text-orange-700 hover:bg-orange-100"
+                  onClick={handleResend}
+                  disabled={cooldownLeft > 0 || resendEmailMutation.isPending}
+                >
+                  {resendEmailMutation.isPending 
+                    ? 'Sending...' 
+                    : cooldownLeft > 0 
+                      ? `Resend available in ${cooldownLeft}s` 
+                      : 'Resend Verification Email'}
+                </Button>
+              </div>
+            )}
           </form>
         </Form>
 

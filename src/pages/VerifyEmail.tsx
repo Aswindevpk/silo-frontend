@@ -18,17 +18,27 @@ export const VerifyEmail: React.FC = () => {
 
   const [errorMessage, setErrorMessage] = useState('');
   const [email, setEmail] = useState(initialEmail);
+  const [verificationStatus, setVerificationStatus] = useState<'idle' | 'verifying' | 'success' | 'error'>('idle');
+
+  const hasAttempted = React.useRef(false);
 
   useEffect(() => {
-    if (token) {
-      verifyEmailMutation.mutate(token, {
-        onSuccess: () => {
+    if (token && !hasAttempted.current) {
+      hasAttempted.current = true;
+      
+      const verify = async () => {
+        setVerificationStatus('verifying');
+        try {
+          await verifyEmailMutation.mutateAsync(token);
+          setVerificationStatus('success');
           toast.success('Email verified successfully! You can now log in.');
-        },
-        onError: (err: any) => {
+        } catch (err: any) {
+          setVerificationStatus('error');
           setErrorMessage(err.message || 'Verification failed. The token may be invalid or expired.');
-        },
-      });
+        }
+      };
+
+      verify();
     }
   }, [token]);
 
@@ -49,13 +59,13 @@ export const VerifyEmail: React.FC = () => {
     });
   };
 
-  const isVerifying = verifyEmailMutation.isPending;
-  const isSuccess = verifyEmailMutation.isSuccess;
-  const isError = verifyEmailMutation.isError;
+  const isVerifying = verificationStatus === 'verifying';
+  const isSuccess = verificationStatus === 'success';
+  const isError = verificationStatus === 'error';
   const isResending = resendEmailMutation.isPending;
 
   // Initial state if no token in URL
-  const isIdle = !token;
+  const isIdle = !token || verificationStatus === 'idle';
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 dark:bg-zinc-950">

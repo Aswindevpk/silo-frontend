@@ -33,7 +33,7 @@ export const RegisterForm: React.FC = () => {
       },
       {
         onSuccess: () => {
-          toast.success('Registration successful! Please check your email.');
+          toast.success('Registration successful. Please check your email to verify your account.');
           setRegisteredEmail(values.email);
         },
         onError: (err: any) => {
