@@ -10,6 +10,7 @@ interface WebSocketContextType {
   subscribeToChannel: (channelId: number) => void;
   sendJsonMessage: (stream: StreamNamespace, message: any) => void;
   registerMessageHandler: (stream: StreamNamespace, type: string, handler: (data: any) => void) => () => void;
+  toggleConnection: () => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
@@ -49,7 +50,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       isAuthenticated: isWsAuthenticated,
       subscribeToChannel: wsManager.subscribeToChannel.bind(wsManager),
       sendJsonMessage: wsManager.sendJsonMessage.bind(wsManager),
-      registerMessageHandler: wsManager.registerMessageHandler.bind(wsManager)
+      registerMessageHandler: wsManager.registerMessageHandler.bind(wsManager),
+      toggleConnection: () => {
+        if (isConnected) {
+          wsManager.disconnect();
+        } else {
+          wsManager.connect();
+        }
+      }
     }}>
       {children}
     </WebSocketContext.Provider>
