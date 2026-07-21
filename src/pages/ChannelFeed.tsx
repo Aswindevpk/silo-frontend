@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, type Channel, type Topic, type Reply } from '@/lib/api';
 import { useWebSocket } from '@/context/WebSocketContext';
@@ -14,9 +14,27 @@ import {
   X,
   Send,
   PhoneCall,
-  Loader2
+  Loader2,
+  Check,
+  CheckCheck
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+
+// Helper to generate a consistent color based on user string
+const getAvatarColor = (identifier: string = '') => {
+  const colors = [
+    'bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-green-500',
+    'bg-emerald-500', 'bg-teal-500', 'bg-cyan-500', 'bg-indigo-500',
+    'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500',
+    'bg-rose-500'
+  ];
+  let hash = 0;
+  for (let i = 0; i < identifier.length; i++) {
+    hash = identifier.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
 
 export const ChannelFeed: React.FC = () => {
   const { workspaceSlug, channelId } = useParams<{ workspaceSlug: string; channelId: string }>();
@@ -25,12 +43,13 @@ export const ChannelFeed: React.FC = () => {
   const [channel, setChannel] = useState<Channel | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   // Active Thread / Replies Drawer State
   const [activeTopic, setActiveTopic] = useState<Topic | null>(null);
-  
+
   // Use new hook
-  const { sendReplyMessage, updateTypingStatus, activeTypers } = useSiloChatRoom(
+  const { sendReplyMessage } = useSiloChatRoom(
     channel?.workspace || 0, // wait, channel model has workspace? Yes.
     parseInt(channelId || '0', 10),
     activeTopic?.id || null
@@ -48,12 +67,22 @@ export const ChannelFeed: React.FC = () => {
   const [showCallDialer, setShowCallDialer] = useState(false);
   const [dialerEmail, setDialerEmail] = useState('');
 
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [replies]);
+
   const fetchChannelData = async () => {
     if (!channelId || !workspaceSlug) return;
     try {
       setLoading(true);
       const id = parseInt(channelId, 10);
-      
+
       // Load current channel info
       const chList = await api.listChannels(workspaceSlug);
       const ch = chList.find((c) => c.id === id);
@@ -84,17 +113,24 @@ export const ChannelFeed: React.FC = () => {
   // Real-time updates subscription hook
   useEffect(() => {
     // Listen for new topics or new replies posted in our channel group
-    const unsubscribeNewReply = registerMessageHandler('chat', 'new_reply_broadcast', (message: any) => {
+    const unsubscribeNewReply = registerMessageHandler('chat', 'new_reply', (message: any) => {
       // Message format: ReplySerializer data. It has topic (id), content, etc.
       // Wait! In the view we serialized it using ReplySerializer, so it has `topic` instead of `topic_id`!
       // Let's check ReplySerializer in backend to be sure. If it has `topic`, we use `message.topic`.
-      const topicId = message.topic || message.topic_id;
+      // message.topic from backend is serialized as a string. Parse it to match local Number IDs.
+      const rawTopicId = message.topic || message.topic_id;
+      const topicId = typeof rawTopicId === 'string' ? parseInt(rawTopicId, 10) : rawTopicId;
+
       if (message && topicId) {
         // Increment reply count in topics list
         setTopics((prev) =>
           prev.map((t) =>
             t.id === topicId
-              ? { ...t, replies_count: (t.replies_count || 0) + 1 }
+              ? { 
+                  ...t, 
+                  replies_count: (t.replies_count || 0) + 1,
+                  unread_count: (activeTopic?.id !== topicId) ? (t.unread_count || 0) + 1 : 0
+                }
               : t
           )
         );
@@ -102,9 +138,26 @@ export const ChannelFeed: React.FC = () => {
         // If the active open thread drawer is for this topic, append the reply in real time!
         if (activeTopic && activeTopic.id === topicId) {
           setReplies((prev) => {
+            // Normalize message from backend since WebSocket uses simple JSON format
+            const msgId = typeof message.id === 'string' ? parseInt(message.id, 10) : message.id;
+            const finalMessage = {
+              ...message,
+              id: msgId,
+              topic: typeof message.topic === 'string' ? parseInt(message.topic, 10) : message.topic,
+              created_at: message.created_at || message.timestamp, // consumers.py sends timestamp instead of created_at
+            };
+
+            // Find an optimistic reply from this user with the same content
+            const pendingIndex = prev.findIndex(r => r.id < 0 && r.status === 'sending' && r.content === finalMessage.content);
+            if (pendingIndex !== -1) {
+              const newReplies = [...prev];
+              newReplies[pendingIndex] = { ...finalMessage, status: 'sent' };
+              return newReplies;
+            }
+
             // Deduplicate (if we already appended it optimistically)
-            if (prev.some(r => r.id === message.id)) return prev;
-            return [...prev, message];
+            if (prev.some(r => r.id === finalMessage.id)) return prev;
+            return [...prev, { ...finalMessage, status: 'sent' }];
           });
         }
       }
@@ -134,10 +187,14 @@ export const ChannelFeed: React.FC = () => {
   const handleOpenThread = async (topic: Topic) => {
     setActiveTopic(topic);
     setReplies([]);
+    
+    // Clear unread count when opening the thread
+    setTopics((prev) => prev.map(t => t.id === topic.id ? { ...t, unread_count: 0 } : t));
+
     try {
       setLoadingReplies(true);
       const list = await api.listReplies(topic.id);
-      setReplies(list);
+      setReplies(list.map(r => ({ ...r, status: 'sent' })));
     } catch (err) {
       toast.error('Failed to load thread replies.');
     } finally {
@@ -149,11 +206,32 @@ export const ChannelFeed: React.FC = () => {
     e.preventDefault();
     if (!activeTopic || !newReplyContent.trim()) return;
 
+    const content = newReplyContent;
+    setNewReplyContent('');
+
+    // Optimistic UI updates
+    const tempId = -Date.now();
+    const optimisticReply: Reply = {
+      id: tempId,
+      topic: activeTopic.id,
+      content: content,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      created_by: user ? {
+        id: user.id,
+        username: user.username || user.email.split('@')[0],
+        email: user.email,
+      } : undefined,
+      status: 'sending'
+    };
+    
+    setReplies(prev => [...prev, optimisticReply]);
+
     try {
-      sendReplyMessage(newReplyContent);
-      setNewReplyContent('');
+      sendReplyMessage(content);
     } catch (err: any) {
       toast.error(err.message || 'Failed to send reply.');
+      setReplies(prev => prev.filter(r => r.id !== tempId));
     }
   };
 
@@ -195,14 +273,7 @@ export const ChannelFeed: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Live Huddle actions */}
-            <Button
-              onClick={() => setShowCallDialer(true)}
-              className="bg-[#18181B] text-white hover:bg-black text-xs font-bold flex items-center gap-1.5 h-9"
-            >
-              <PhoneCall className="h-4 w-4" />
-              Join Voice Huddle
-            </Button>
+            {/* Live Huddle actions removed */}
           </div>
         </div>
 
@@ -236,11 +307,10 @@ export const ChannelFeed: React.FC = () => {
                   <div
                     key={topic.id}
                     onClick={() => handleOpenThread(topic)}
-                    className={`p-4 rounded-xl border transition-all cursor-pointer text-left ${
-                      isSelected
+                    className={`p-4 rounded-xl border transition-all cursor-pointer text-left ${isSelected
                         ? 'border-[#18181B]/50 bg-gray-50'
                         : 'border-gray-200 bg-white/60 hover:bg-gray-100/40'
-                    }`}
+                      }`}
                   >
                     <div className="flex justify-between text-[11px] text-[#18181B]0 mb-1">
                       <span>
@@ -256,6 +326,11 @@ export const ChannelFeed: React.FC = () => {
                     <div className="flex items-center justify-between text-xs pt-2 border-t border-gray-200/40">
                       <div className="flex items-center gap-1.5 text-[#18181B] hover:text-[#18181B] font-semibold">
                         <span>{topic.replies_count || 0} replies</span>
+                        {topic.unread_count ? (
+                          <span className="bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                            {topic.unread_count} new
+                          </span>
+                        ) : null}
                         <ChevronRight className="h-3 w-3" />
                       </div>
                     </div>
@@ -287,10 +362,10 @@ export const ChannelFeed: React.FC = () => {
             {/* Original Post */}
             <div className="bg-white border border-gray-200 p-3 rounded-lg space-y-2">
               <div className="flex items-center gap-1.5 text-[11px] text-[#18181B]0">
-                <div className="h-4 w-4 rounded-full bg-[#18181B] text-white font-bold text-[8px] flex items-center justify-center uppercase">
-                  {activeTopic.created_by?.username?.slice(0, 2) || 'M'}
+                <div className={`h-4 w-4 rounded-full text-white font-bold text-[8px] flex items-center justify-center uppercase ${getAvatarColor(activeTopic.created_by?.email || activeTopic.created_by?.username)}`}>
+                  {(activeTopic.created_by?.username || activeTopic.created_by?.email || 'M').slice(0, 2)}
                 </div>
-                <span>@{activeTopic.created_by?.username || 'member'}</span>
+                <span>@{activeTopic.created_by?.username || activeTopic.created_by?.email?.split('@')[0] || 'member'}</span>
               </div>
               <h5 className="font-bold text-sm text-[#18181B]">{activeTopic.title}</h5>
               <p className="text-xs text-gray-500">{activeTopic.content}</p>
@@ -307,38 +382,56 @@ export const ChannelFeed: React.FC = () => {
                   No replies yet. Be the first to comment!
                 </p>
               ) : (
-                replies.map((rep) => (
-                  <div key={rep.id} className="bg-white/40 p-2.5 rounded-lg border border-gray-200/40 text-xs">
-                    <div className="flex items-center gap-1.5 text-[10px] text-[#18181B]0 mb-1">
-                      <div className="h-3.5 w-3.5 rounded-full bg-gray-200 text-gray-700 font-bold text-[7px] flex items-center justify-center uppercase">
-                        {rep.created_by?.username?.slice(0, 2) || 'R'}
+                replies.map((rep) => {
+                  const isMe = user?.id 
+                    ? String(rep.created_by?.id) === String(user.id) 
+                    : rep.created_by?.email === user?.email;
+                  
+                  const displayName = rep.created_by?.username || rep.created_by?.email?.split('@')[0] || 'member';
+                  const displayInitial = displayName.slice(0, 2);
+                  const avatarColor = isMe ? 'bg-blue-500 text-white' : `${getAvatarColor(rep.created_by?.email || displayName)} text-white`;
+
+                  return (
+                    <div key={rep.id} className={`flex w-full ${isMe ? 'justify-end' : 'justify-start'}`}>
+                      <div 
+                        className={`p-2.5 rounded-xl border text-xs max-w-[85%] shadow-sm ${isMe ? 'bg-blue-50/80 border-blue-200/60 rounded-br-none' : 'bg-white/80 border-gray-200/60 rounded-bl-none'}`}
+                      >
+                        <div className={`flex items-center gap-1.5 text-[10px] mb-1 ${isMe ? 'flex-row-reverse' : ''}`}>
+                          <div className={`h-4 w-4 rounded-full font-bold text-[8px] flex items-center justify-center uppercase shrink-0 ${avatarColor}`}>
+                            {displayInitial}
+                          </div>
+                          <span className={`font-semibold ${isMe ? 'text-blue-700' : 'text-gray-800'}`}>
+                            {isMe ? 'You' : `@${displayName}`}
+                          </span>
+                          <span className={`flex items-center gap-1 text-gray-400 ${isMe ? 'mr-auto' : 'ml-auto'}`}>
+                            {new Date(rep.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {isMe && (
+                              <>
+                                {rep.status === 'sending' && <Check className="h-3 w-3 text-gray-400" />}
+                                {rep.status === 'sent' && <CheckCheck className="h-3 w-3 text-blue-500" />}
+                              </>
+                            )}
+                          </span>
+                        </div>
+                        <p className={`text-gray-700 leading-relaxed break-words ${isMe ? 'text-right' : 'text-left'}`}>
+                          {rep.content}
+                        </p>
                       </div>
-                      <span className="font-semibold">@{rep.created_by?.username || 'replier'}</span>
-                      <span className="ml-auto">
-                        {new Date(rep.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
                     </div>
-                    <p className="text-gray-700 leading-relaxed">{rep.content}</p>
-                  </div>
-                ))
+                  );
+                })
               )}
+              <div ref={messagesEndRef} />
             </div>
           </div>
 
           {/* Post Reply Input Form */}
-          <div className="px-4 py-1 text-[10px] text-[#18181B]0 italic h-4">
-            {Object.values(activeTypers).some(Boolean) && "Someone is typing..."}
-          </div>
           <form onSubmit={handlePostReply} className="p-3 border-t border-gray-200 bg-white/80">
             <div className="flex items-center gap-1 bg-white border border-gray-200 rounded px-2">
               <input
                 placeholder="Reply to this thread..."
                 value={newReplyContent}
-                onChange={(e) => {
-                  setNewReplyContent(e.target.value);
-                  updateTypingStatus(e.target.value.length > 0);
-                }}
-                onBlur={() => updateTypingStatus(false)}
+                onChange={(e) => setNewReplyContent(e.target.value)}
                 className="flex-1 bg-transparent py-2 text-xs focus:outline-none text-[#18181B]"
               />
               <button
@@ -436,26 +529,26 @@ export const ChannelFeed: React.FC = () => {
                 >
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="flex-1 bg-[#18181B] text-white hover:bg-black font-bold"
                   onClick={(e) => {
                     e.preventDefault();
                     if (!workspaceSlug || !dialerEmail) return;
                     setShowCallDialer(false);
-                    startCall(workspaceSlug, dialerEmail, false).then(() => setDialerEmail('')).catch(()=>{});
+                    startCall(workspaceSlug, dialerEmail, false).then(() => setDialerEmail('')).catch(() => { });
                   }}
                 >
                   Voice
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="flex-1 bg-[#18181B] text-white hover:bg-black font-bold"
                   onClick={(e) => {
                     e.preventDefault();
                     if (!workspaceSlug || !dialerEmail) return;
                     setShowCallDialer(false);
-                    startCall(workspaceSlug, dialerEmail, true).then(() => setDialerEmail('')).catch(()=>{});
+                    startCall(workspaceSlug, dialerEmail, true).then(() => setDialerEmail('')).catch(() => { });
                   }}
                 >
                   Video

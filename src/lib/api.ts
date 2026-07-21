@@ -178,8 +178,9 @@ export interface Topic {
     username: string;
     email: string;
   };
-  last_reply_at?: string;
   replies_count?: number;
+  unread_count?: number;
+  last_reply_at?: string;
 }
 
 export interface Reply {
@@ -193,6 +194,7 @@ export interface Reply {
     username: string;
     email: string;
   };
+  status?: 'sending' | 'sent';
 }
 
 export interface CallSession {
@@ -355,6 +357,11 @@ export const api = {
 
   async endCall(sessionId: number): Promise<CallSession> {
     const response = await apiClient.post(`/api/v1/calls/${sessionId}/end/`);
+    return response.data;
+  },
+
+  async getOnlineUsers(): Promise<number[]> {
+    const response = await apiClient.get('/api/v1/users/presence/');
     return response.data;
   },
 };

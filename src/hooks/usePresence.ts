@@ -1,48 +1,55 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { RootState, AppDispatch } from '@/store';
+import { setInitialPresence, userJoined, userLeft } from '@/store/slices/presenceSlice';
+import { api } from '@/lib/api';
 import { useWebSocket } from '@/context/WebSocketContext';
 
-export const usePresence = (workspaceSlug?: string) => {
-  const { sendJsonMessage, registerMessageHandler, isConnected } = useWebSocket();
-  const [onlineUserIds, setOnlineUserIds] = useState<Set<number>>(new Set());
+export const usePresence = (_workspaceSlug?: string) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const onlineUserIds = useSelector((state: RootState) => state.presence.onlineUserIds);
 
   useEffect(() => {
-    if (!workspaceSlug || !isConnected) return;
-
-    // Send heartbeat immediately on connect, then every 30s
-    const sendHeartbeat = () => {
-      sendJsonMessage('system', {
-        type: 'presence_heartbeat',
-        workspace_slug: workspaceSlug
-      });
+    // Fetch initial presence exactly once when mounted
+    let isMounted = true;
+    const fetchPresence = async () => {
+      try {
+        const ids = await api.getOnlineUsers();
+        if (isMounted) {
+          dispatch(setInitialPresence(ids));
+        }
+      } catch (err) {
+        console.error("Failed to fetch initial online users", err);
+      }
     };
+    
+    fetchPresence();
 
-    sendHeartbeat();
-    const interval = setInterval(sendHeartbeat, 30000);
+    return () => {
+      isMounted = false;
+    };
+  }, [dispatch]);
 
-    // Listen for presence broadcasts
-    const unsubscribe = registerMessageHandler('system', 'presence_update', (data) => {
-      const { user_id, status } = data;
-      if (user_id) {
-        setOnlineUserIds((prev) => {
-          const next = new Set(prev);
-          if (status === 'online') {
-            next.add(user_id);
-          } else {
-            next.delete(user_id);
-          }
-          return next;
-        });
+  // Listen for WebSocket delta updates for presence
+  const { registerMessageHandler } = useWebSocket();
+  
+  useEffect(() => {
+    const unsubscribe = registerMessageHandler('system', 'presence_update', (data: any) => {
+      if (data.action === 'user_joined') {
+        dispatch(userJoined(data.user_id));
+      } else if (data.action === 'user_left') {
+        dispatch(userLeft(data.user_id));
       }
     });
 
     return () => {
-      clearInterval(interval);
       unsubscribe();
     };
-  }, [workspaceSlug, isConnected]);
+  }, [registerMessageHandler, dispatch]);
 
+  // Convert array to Set for fast lookup if needed, or just use includes
   return {
-    onlineUserIds,
-    isOnline: (userId: number) => onlineUserIds.has(userId)
+    onlineUserIds: new Set(onlineUserIds),
+    isOnline: (userId: number) => onlineUserIds.includes(userId)
   };
 };

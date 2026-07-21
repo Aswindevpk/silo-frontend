@@ -4,6 +4,7 @@ import { EphemeralChat } from '@/components/EphemeralChat';
 import { api, type Channel, type Workspace } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useCall } from '@/context/CallContext';
+import { useWebSocket } from '@/context/WebSocketContext';
 import { usePresence } from '@/hooks/usePresence';
 import { type WorkspaceMember } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -15,12 +16,12 @@ import {
   Settings,
   Plus,
   ArrowLeft,
-  Volume2,
   PhoneCall,
-  PhoneOff,
   LogOut,
   Video,
-  MessageSquare
+  MessageSquare,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -30,12 +31,12 @@ export const WorkspaceLayout: React.FC = () => {
   const location = useLocation();
   const { logout, user } = useAuth();
   const {
-    incomingCall,
-    callStatus,
-    activeSession,
-    acceptCall,
-    rejectCall,
-    endCall,
+    // incomingCall,
+    // callStatus,
+    // activeSession,
+    // acceptCall,
+    // rejectCall,
+    // endCall,
     startCall
   } = useCall();
 
@@ -44,6 +45,7 @@ export const WorkspaceLayout: React.FC = () => {
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [loading, setLoading] = useState(true);
   const { isOnline } = usePresence(workspaceSlug);
+  const { isConnected, toggleConnection } = useWebSocket();
 
   // Expanded member state
   const [expandedMemberId, setExpandedMemberId] = useState<number | null>(null);
@@ -131,17 +133,28 @@ export const WorkspaceLayout: React.FC = () => {
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80">
             <img src="/silo.png" alt="SILO Logo" className="h-6 w-auto object-contain" />
-            <span className="font-bold tracking-tight text-sm truncate max-w-[130px]">
+            <span className="font-bold tracking-tight text-sm truncate max-w-[100px]">
               {workspace?.name}
             </span>
           </Link>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="p-1 rounded text-gray-500 hover:text-[#18181B] hover:bg-gray-100"
-            title="Switch Workspace"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={toggleConnection}
+              className={`p-1 rounded flex items-center justify-center transition-colors ${
+                isConnected ? 'text-green-600 bg-green-50 hover:bg-green-100' : 'text-red-500 bg-red-50 hover:bg-red-100'
+              }`}
+              title={isConnected ? 'Disconnect WebSocket' : 'Connect WebSocket'}
+            >
+              {isConnected ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="p-1 rounded text-gray-500 hover:text-[#18181B] hover:bg-gray-100"
+              title="Switch Workspace"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {/* Sidebar Nav Items */}
@@ -323,61 +336,6 @@ export const WorkspaceLayout: React.FC = () => {
       <main className="flex-1 flex flex-col h-full bg-white overflow-hidden relative">
         <Outlet />
 
-        {/* Voice Calling Signaling Floating Modal Overlay */}
-        {incomingCall && (
-          <div className="absolute bottom-6 right-6 z-50 bg-white border-2 border-gray-200 p-4 rounded-xl shadow-2xl w-80 animate-bounce">
-            <div className="flex items-center gap-3">
-              <div className="bg-gray-100 text-[#18181B] p-3 rounded-full animate-pulse">
-                <PhoneCall className="h-6 w-6" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-sm text-[#18181B]">Incoming Huddle Call</h4>
-                <p className="text-xs text-gray-500 truncate">{incomingCall.callerEmail}</p>
-              </div>
-            </div>
-            <div className="mt-4 flex gap-2">
-              <Button
-                onClick={() => acceptCall(false)}
-                className="flex-1 bg-[#18181B] text-white hover:bg-black font-semibold text-xs"
-              >
-                Accept
-              </Button>
-              <Button
-                onClick={rejectCall}
-                variant="outline"
-                className="flex-1 border-gray-200 hover:bg-gray-100 text-gray-700 text-xs"
-              >
-                Decline
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {callStatus !== 'idle' && !incomingCall && (
-          <div className="absolute bottom-6 right-6 z-50 bg-white border border-[#18181B] p-4 rounded-xl shadow-2xl w-80">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#18181B] animate-ping"></span>
-                <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">
-                  {callStatus === 'calling' ? 'Dialing Connection...' : 'Voice Huddle Connected'}
-                </span>
-              </div>
-              <button
-                onClick={endCall}
-                className="text-red-500 hover:text-red-400 p-1"
-                title="End Call"
-              >
-                <PhoneOff className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mt-2 flex items-center justify-between bg-white/60 p-2 rounded">
-              <span className="text-xs font-mono text-gray-700">
-                {activeSession?.receiver?.email || 'Huddle participant'}
-              </span>
-              <Volume2 className="h-4 w-4 text-[#18181B]" />
-            </div>
-          </div>
-        )}
       </main>
       <EphemeralChat 
         targetEmail={chatTargetEmail} 
