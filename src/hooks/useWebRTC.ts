@@ -29,7 +29,8 @@ const DEFAULT_ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-  ]
+  ],
+  iceTransportPolicy: 'relay'
 };
 
 export const useWebRTC = (): UseWebRTCReturn => {
@@ -142,7 +143,8 @@ export const useWebRTC = (): UseWebRTCReturn => {
           : [turnCreds.iceServers];
           
         iceConfig = { 
-          iceServers: servers
+          iceServers: servers,
+          iceTransportPolicy: 'relay'
         };
       }
     } catch (e) {
@@ -170,7 +172,8 @@ export const useWebRTC = (): UseWebRTCReturn => {
           : [turnCreds.iceServers];
           
         iceConfig = { 
-          iceServers: servers
+          iceServers: servers,
+          iceTransportPolicy: 'relay'
         };
       }
     } catch (e) {
