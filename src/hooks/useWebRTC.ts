@@ -25,7 +25,7 @@ export interface UseWebRTCReturn {
   onRenegotiationRef: React.MutableRefObject<((offer: RTCSessionDescriptionInit) => void) | null>;
 }
 
-const DEFAULT_ICE_SERVERS = {
+const DEFAULT_ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
@@ -133,11 +133,17 @@ export const useWebRTC = (): UseWebRTCReturn => {
     setTargetUserId(targetId);
     await requestMedia(withVideo);
     
-    let iceConfig = DEFAULT_ICE_SERVERS;
+    let iceConfig: RTCConfiguration = DEFAULT_ICE_SERVERS;
     try {
       const turnCreds = await api.getTurnCredentials();
       if (turnCreds && turnCreds.iceServers) {
-        iceConfig = { iceServers: turnCreds.iceServers };
+        const servers = Array.isArray(turnCreds.iceServers) 
+          ? turnCreds.iceServers 
+          : [turnCreds.iceServers];
+          
+        iceConfig = { 
+          iceServers: servers
+        };
       }
     } catch (e) {
       console.warn("Failed to fetch TURN credentials, falling back to STUN", e);
@@ -155,11 +161,17 @@ export const useWebRTC = (): UseWebRTCReturn => {
     setTargetUserId(targetId);
     await requestMedia(withVideo);
 
-    let iceConfig = DEFAULT_ICE_SERVERS;
+    let iceConfig: RTCConfiguration = DEFAULT_ICE_SERVERS;
     try {
       const turnCreds = await api.getTurnCredentials();
       if (turnCreds && turnCreds.iceServers) {
-        iceConfig = { iceServers: turnCreds.iceServers };
+        const servers = Array.isArray(turnCreds.iceServers) 
+          ? turnCreds.iceServers 
+          : [turnCreds.iceServers];
+          
+        iceConfig = { 
+          iceServers: servers
+        };
       }
     } catch (e) {
       console.warn("Failed to fetch TURN credentials, falling back to STUN", e);
