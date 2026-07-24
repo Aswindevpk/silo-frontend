@@ -13,7 +13,7 @@ export const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const workspaces: Workspace[] = [];
   const [loading, setLoading] = useState(true);
 
   const fetchWorkspaces = async () => {
@@ -25,8 +25,10 @@ export const Dashboard: React.FC = () => {
         // They can switch or create new workspaces from the top navbar in the WorkspaceLayout.
         navigate(`/w/${list[0].slug}`);
         return;
+      } else {
+        navigate('/onboarding');
+        return;
       }
-      setWorkspaces(list);
     } catch (err: any) {
       toast.error('Failed to load workspaces.');
     } finally {

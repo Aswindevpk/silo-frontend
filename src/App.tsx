@@ -16,6 +16,7 @@ import { ChannelFeed } from '@/pages/ChannelFeed';
 import { DirectMessageView } from '@/pages/DirectMessageView';
 import { DocumentCanvas } from '@/pages/DocumentCanvas';
 import { BillingSettings } from '@/pages/BillingSettings';
+import { WorkspacePeople } from '@/pages/WorkspacePeople';
 import { GoogleCallback } from '@/pages/GoogleCallback';
 import { CallWidget } from '@/components/CallWidget';
 import { LandingPage } from '@/pages/LandingPage';
@@ -114,6 +115,7 @@ function App() {
                     <Route path="ch/:channelId" element={<ChannelFeed />} />
                     <Route path="dm/:targetEmail" element={<DirectMessageView />} />
                     <Route path="docs/:docId" element={<DocumentCanvas />} />
+                    <Route path="people" element={<WorkspacePeople />} />
                     <Route path="settings/billing" element={<BillingSettings />} />
                   </Route>
 

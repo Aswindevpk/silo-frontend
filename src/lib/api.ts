@@ -339,4 +339,9 @@ export const api = {
     const response = await apiClient.get('/api/v1/users/presence/');
     return response.data;
   },
+
+  async getTurnCredentials(): Promise<any> {
+    const response = await apiClient.get('/api/v1/calls/turn-credentials/');
+    return response.data;
+  },
 };

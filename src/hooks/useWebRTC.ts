@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
+import { api } from '../lib/api';
 
 export type CallStatus = 'idle' | 'calling' | 'ringing' | 'connected';
 
@@ -24,7 +25,7 @@ export interface UseWebRTCReturn {
   onRenegotiationRef: React.MutableRefObject<((offer: RTCSessionDescriptionInit) => void) | null>;
 }
 
-const ICE_SERVERS = {
+const DEFAULT_ICE_SERVERS = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
@@ -84,8 +85,8 @@ export const useWebRTC = (): UseWebRTCReturn => {
     setIsMuted(false);
   }, []);
 
-  const createPeerConnection = useCallback(() => {
-    const pc = new RTCPeerConnection(ICE_SERVERS);
+  const createPeerConnection = useCallback((config: RTCConfiguration = DEFAULT_ICE_SERVERS) => {
+    const pc = new RTCPeerConnection(config);
 
     // Send ICE candidates out
     pc.onicecandidate = (event) => {
@@ -132,7 +133,17 @@ export const useWebRTC = (): UseWebRTCReturn => {
     setTargetUserId(targetId);
     await requestMedia(withVideo);
     
-    const pc = createPeerConnection();
+    let iceConfig = DEFAULT_ICE_SERVERS;
+    try {
+      const turnCreds = await api.getTurnCredentials();
+      if (turnCreds && turnCreds.iceServers) {
+        iceConfig = { iceServers: turnCreds.iceServers };
+      }
+    } catch (e) {
+      console.warn("Failed to fetch TURN credentials, falling back to STUN", e);
+    }
+    
+    const pc = createPeerConnection(iceConfig);
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     
@@ -144,7 +155,17 @@ export const useWebRTC = (): UseWebRTCReturn => {
     setTargetUserId(targetId);
     await requestMedia(withVideo);
 
-    const pc = createPeerConnection();
+    let iceConfig = DEFAULT_ICE_SERVERS;
+    try {
+      const turnCreds = await api.getTurnCredentials();
+      if (turnCreds && turnCreds.iceServers) {
+        iceConfig = { iceServers: turnCreds.iceServers };
+      }
+    } catch (e) {
+      console.warn("Failed to fetch TURN credentials, falling back to STUN", e);
+    }
+
+    const pc = createPeerConnection(iceConfig);
     await pc.setRemoteDescription(new RTCSessionDescription(offerSdp));
     await processIceQueue(pc);
 
