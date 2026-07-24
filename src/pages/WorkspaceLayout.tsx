@@ -76,6 +76,7 @@ export const WorkspaceLayout: React.FC = () => {
   const { isOnline } = usePresence(workspaceSlug);
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [allWorkspaces, setAllWorkspaces] = useState<Workspace[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,6 +103,7 @@ export const WorkspaceLayout: React.FC = () => {
         return;
       }
       setWorkspace(ws);
+      setAllWorkspaces(workspacesList);
 
       const chList = await api.listChannels(workspaceSlug);
       setChannels(chList);
@@ -193,7 +195,7 @@ export const WorkspaceLayout: React.FC = () => {
                   <Button variant="outline" size="sm" className="w-1/2 flex items-center justify-center gap-2 text-xs h-8 border-gray-200" onClick={() => navigate(`/w/${workspaceSlug}/settings/billing`)}>
                     <Settings className="h-3.5 w-3.5" /> Settings
                   </Button>
-                  <Button variant="outline" size="sm" className="w-1/2 flex items-center justify-center gap-2 text-xs h-8 border-gray-200">
+                  <Button variant="outline" size="sm" className="w-1/2 flex items-center justify-center gap-2 text-xs h-8 border-gray-200" onClick={() => navigate(`/w/${workspaceSlug}/people`)}>
                     <Users className="h-3.5 w-3.5" /> People
                   </Button>
                 </div>
@@ -223,7 +225,26 @@ export const WorkspaceLayout: React.FC = () => {
                   <span className="text-[10px] font-semibold bg-[#EBEBFE] text-[#5851DE] px-1.5 py-0.5 rounded">New</span>
                 </DropdownMenuItem>
 
-                <div className="p-2 mt-2">
+                <DropdownMenuSeparator className="my-1 border-gray-100" />
+                
+                <div className="px-3 py-1.5 mt-1">
+                  <span className="text-[11px] text-gray-500 font-medium">Switch Workspaces</span>
+                </div>
+                
+                {allWorkspaces.filter(w => w.id !== workspace?.id).map(w => (
+                  <DropdownMenuItem 
+                    key={w.id}
+                    onClick={() => navigate(`/w/${w.slug}`)} 
+                    className="cursor-pointer py-2 px-3 text-[13px] flex items-center gap-3 focus:bg-gray-50"
+                  >
+                    <div className="h-6 w-6 bg-teal-600 rounded text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                      {w.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="font-medium text-gray-700 truncate">{w.name}</span>
+                  </DropdownMenuItem>
+                ))}
+
+                <div className="p-2 mt-1">
                   <Button variant="outline" className="w-full justify-center flex items-center gap-2 text-[13px] text-gray-700 font-medium hover:bg-gray-50 h-9 border-gray-200 rounded-lg shadow-sm" onClick={() => navigate('/onboarding')}>
                     <Plus className="h-3.5 w-3.5" /> Create Workspace
                   </Button>
@@ -361,7 +382,7 @@ export const WorkspaceLayout: React.FC = () => {
                   <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
                     <Monitor className="h-4 w-4" /> Create Whiteboard
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                  <DropdownMenuItem onClick={() => navigate(`/w/${workspaceSlug}/people`)} className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
                     <Users className="h-4 w-4" /> View People
                   </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">

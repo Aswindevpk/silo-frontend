@@ -161,11 +161,6 @@ export const DirectMessageView: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex items-center gap-4 ml-6 text-sm font-medium text-gray-500">
-             <button className="text-gray-900 border-b-2 border-gray-900 pb-4 pt-4">Chat</button>
-             <button className="hover:text-gray-900 pb-4 pt-4">Calendar</button>
-             <button className="hover:text-gray-900 pb-4 pt-4">Tasks</button>
-          </div>
         </div>
 
         <div className="flex items-center gap-1 text-gray-500">
