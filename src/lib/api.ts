@@ -165,36 +165,20 @@ export interface Channel {
   created_by?: number;
 }
 
-export interface Topic {
-  id: number;
+export interface ChannelMessage {
+  id: string;
   channel: number;
-  title: string;
+  sender_email: string;
   content: string;
-  status: 'ACTIVE' | 'RESOLVED' | 'CLOSED';
   created_at: string;
-  updated_at: string;
-  created_by?: {
-    id: number;
-    username: string;
-    email: string;
-  };
-  replies_count?: number;
-  unread_count?: number;
-  last_reply_at?: string;
 }
 
-export interface Reply {
-  id: number;
-  topic: number;
+export interface DirectMessage {
+  id: string;
+  sender_email: string;
+  receiver_email: string;
   content: string;
   created_at: string;
-  updated_at: string;
-  created_by?: {
-    id: number;
-    username: string;
-    email: string;
-  };
-  status?: 'sending' | 'sent';
 }
 
 export interface CallSession {
@@ -319,23 +303,14 @@ export const api = {
     return response.data;
   },
 
-  async listTopics(channelId: number): Promise<Topic[]> {
-    const response = await apiClient.get(`/api/v1/chats/channels/${channelId}/topics/`);
+  // Channel Messages Operations
+  async listChannelMessages(channelId: number): Promise<ChannelMessage[]> {
+    const response = await apiClient.get(`/api/v1/chats/channels/${channelId}/messages/`);
     return response.data;
   },
 
-  async createTopic(channelId: number, title: string, content: string): Promise<Topic> {
-    const response = await apiClient.post(`/api/v1/chats/channels/${channelId}/topics/`, { title, content });
-    return response.data;
-  },
-
-  async listReplies(topicId: number): Promise<Reply[]> {
-    const response = await apiClient.get(`/api/v1/chats/topics/${topicId}/replies/`);
-    return response.data;
-  },
-
-  async createReply(topicId: number, content: string): Promise<Reply> {
-    const response = await apiClient.post(`/api/v1/chats/topics/${topicId}/replies/`, { content });
+  async listDirectMessages(workspaceSlug: string, targetEmail: string): Promise<DirectMessage[]> {
+    const response = await apiClient.get(`/api/v1/chats/workspaces/${workspaceSlug}/direct-messages/${targetEmail}/`);
     return response.data;
   },
 

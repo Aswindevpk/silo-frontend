@@ -1,5 +1,5 @@
 import type { Middleware } from '@reduxjs/toolkit';
-import { receiveLiveMessage } from '../slices/chatSlice';
+import { addMessageToThread } from '../slices/chatSlice';
 import { receiveNotification } from '../slices/notificationSlice';
 import { receiveCallSignal } from '../slices/callSlice';
 import { userJoined, userLeft } from '../slices/presenceSlice';
@@ -18,7 +18,7 @@ export const websocketMiddleware: Middleware = (store) => (next) => (action: any
         const message = data.payload?.message || data.payload?.data;
         
         if (threadId && message) {
-          store.dispatch(receiveLiveMessage({ threadId, message }));
+          store.dispatch(addMessageToThread({ threadId, message }));
         }
         break;
 

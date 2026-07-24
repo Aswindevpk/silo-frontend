@@ -1,20 +1,17 @@
 import { useCallback } from 'react';
 import { useWebSocket } from '../context/WebSocketContext';
 
-export function useSiloChatRoom(workspaceId: number, channelId: number, topicId: number | null) {
+export function useSiloChatRoom(workspaceId: number, channelId: number) {
   const { sendJsonMessage } = useWebSocket();
 
-  // 1. Send Reply Message Mutation directly across the open socket pipeline
-  const sendReplyMessage = useCallback((textContent: string) => {
-    if (!topicId) return;
+  const sendChannelMessage = useCallback((textContent: string) => {
     sendJsonMessage('chat', {
-      type: 'send_reply',
+      type: 'send_channel_message',
       workspace_id: workspaceId,
       channel_id: channelId,
-      topic_id: topicId,
       content: textContent
     });
-  }, [sendJsonMessage, workspaceId, channelId, topicId]);
+  }, [sendJsonMessage, workspaceId, channelId]);
 
-  return { sendReplyMessage };
+  return { sendChannelMessage };
 }

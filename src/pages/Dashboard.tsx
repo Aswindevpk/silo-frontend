@@ -4,7 +4,9 @@ import { api, type Workspace } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, ArrowRight, LogOut, Layout } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { PlusCircle, Loader2, ArrowRight, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const Dashboard: React.FC = () => {
@@ -18,6 +20,12 @@ export const Dashboard: React.FC = () => {
     try {
       setLoading(true);
       const list = await api.listWorkspaces();
+      if (list.length > 0) {
+        // If the user has any workspaces (e.g. the default one), redirect to the first one.
+        // They can switch or create new workspaces from the top navbar in the WorkspaceLayout.
+        navigate(`/w/${list[0].slug}`);
+        return;
+      }
       setWorkspaces(list);
     } catch (err: any) {
       toast.error('Failed to load workspaces.');
@@ -99,26 +107,115 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {workspaces.length === 0 ? (
-          <Card className="border border-dashed border-gray-200 bg-gray-50/50 text-center py-20 rounded-[2rem] shadow-none">
-            <CardContent className="space-y-5">
-              <div className="h-16 w-16 bg-white border border-gray-100 rounded-full flex items-center justify-center mx-auto shadow-sm">
-                <Layout className="h-7 w-7 text-gray-400" />
-              </div>
-              <div>
-                <h4 className="font-bold text-[#18181B] text-lg font-['Outfit']">No workspaces found</h4>
-                <p className="text-sm text-gray-500 max-w-md mx-auto mt-2 leading-relaxed">
-                  You are not currently a member of any workspaces. Create one above, or wait for an invitation from your team.
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => navigate('/onboarding')}
-                className="rounded-full border-gray-200 text-[#18181B] hover:bg-gray-50 text-sm font-semibold px-6"
-              >
-                Go to Setup
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="grid w-full gap-8 md:grid-cols-2">
+            {/* Create Workspace */}
+            <Card className="border-gray-200 bg-white text-[#18181B] shadow-sm rounded-[1.5rem]">
+              <CardHeader>
+                <CardTitle className="text-xl text-[#18181B] font-['Outfit']">Create a New Workspace</CardTitle>
+                <CardDescription className="text-gray-500">
+                  Set up a private, collaborative space for your team.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  const target = e.target as any;
+                  const name = target.name.value;
+                  const slug = target.slug.value;
+                  if (!name || !slug) {
+                    toast.error('Please fill in all fields.');
+                    return;
+                  }
+                  try {
+                    setLoading(true);
+                    const ws = await api.createWorkspace(name, slug);
+                    toast.success(`Workspace "${ws.name}" created successfully!`);
+                    navigate(`/w/${ws.slug}`);
+                  } catch (err: any) {
+                    toast.error(err.message || 'Failed to create workspace.');
+                    setLoading(false);
+                  }
+                }} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-[#18181B] font-medium">Workspace Name</Label>
+                    <Input
+                      id="name"
+                      name="name"
+                      placeholder="e.g. Acme Corporation"
+                      onChange={(e) => {
+                        const slugInput = document.getElementById('slug') as HTMLInputElement;
+                        if (slugInput) {
+                          slugInput.value = e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                        }
+                      }}
+                      className="bg-white border-gray-200 focus-visible:ring-[#18181B] text-[#18181B] rounded-lg"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="slug" className="text-[#18181B] font-medium">Workspace URL Slug</Label>
+                    <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg px-3 focus-within:ring-1 focus-within:ring-[#18181B]">
+                      <span className="text-gray-400 text-sm font-medium">silo.app/w/</span>
+                      <input
+                        id="slug"
+                        name="slug"
+                        placeholder="acme-corp"
+                        className="flex-1 bg-transparent py-2 text-sm focus:outline-none text-[#18181B]"
+                      />
+                    </div>
+                  </div>
+
+                  <Button type="submit" disabled={loading} className="w-full bg-[#18181B] text-white hover:bg-black font-semibold rounded-full h-10 mt-2 transition-all">
+                    Create Workspace
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Join Workspace */}
+            <Card className="border-gray-200 bg-white text-[#18181B] shadow-sm rounded-[1.5rem]">
+              <CardHeader>
+                <CardTitle className="text-xl text-[#18181B] font-['Outfit']">Join Existing Workspace</CardTitle>
+                <CardDescription className="text-gray-500">
+                  Enter your invitation token to connect with an established team.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  const target = e.target as any;
+                  const token = target.token.value;
+                  if (!token) {
+                    toast.error('Please enter an invitation token.');
+                    return;
+                  }
+                  try {
+                    setLoading(true);
+                    await api.acceptWorkspaceInvitation(token);
+                    toast.success('Invitation accepted successfully!');
+                    fetchWorkspaces();
+                  } catch (err: any) {
+                    toast.error(err.message || 'Failed to accept invitation. The token may be expired.');
+                    setLoading(false);
+                  }
+                }} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="token" className="text-[#18181B] font-medium">Invitation Token</Label>
+                    <Input
+                      id="token"
+                      name="token"
+                      placeholder="Paste token here"
+                      className="bg-white border-gray-200 focus-visible:ring-[#18181B] text-[#18181B] font-mono text-sm rounded-lg"
+                    />
+                  </div>
+
+                  <Button type="submit" disabled={loading} className="w-full bg-white text-[#18181B] border border-gray-200 hover:bg-gray-50 font-semibold rounded-full h-10 mt-8 transition-all">
+                    Accept Invitation & Join
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2">
             {workspaces.map((ws) => (

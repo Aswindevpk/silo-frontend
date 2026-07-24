@@ -1,27 +1,69 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { EphemeralChat } from '@/components/EphemeralChat';
 import { api, type Channel, type Workspace } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { useCall } from '@/context/CallContext';
 import { useWebSocket } from '@/context/WebSocketContext';
 import { usePresence } from '@/hooks/usePresence';
 import { type WorkspaceMember } from '@/lib/api';
+
+import { RightSidebar } from '@/components/RightSidebar';
+
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 import {
   Hash,
   BookOpen,
   Settings,
   Plus,
-  ArrowLeft,
-  PhoneCall,
   LogOut,
   Video,
-  MessageSquare,
   Wifi,
-  WifiOff
+  WifiOff,
+  ChevronDown,
+  PanelLeftClose,
+  LayoutDashboard,
+  Users,
+  AppWindow,
+  LayoutTemplate,
+  FileEdit,
+  Zap,
+  Tags,
+  VolumeX,
+  Bell,
+  Palette,
+  Command,
+  Download,
+  ExternalLink,
+  HelpCircle,
+  Bug,
+  CheckCircle2,
+  Pin,
+  Briefcase,
+  Clock,
+  FileText,
+  Mic,
+  AlarmClock,
+  File,
+  Monitor,
+  Bot,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -30,26 +72,15 @@ export const WorkspaceLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user } = useAuth();
-  const {
-    // incomingCall,
-    // callStatus,
-    // activeSession,
-    // acceptCall,
-    // rejectCall,
-    // endCall,
-    startCall
-  } = useCall();
+  const { isConnected, toggleConnection } = useWebSocket();
+  const { isOnline } = usePresence(workspaceSlug);
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const { isOnline } = usePresence(workspaceSlug);
-  const { isConnected, toggleConnection } = useWebSocket();
-
-  // Expanded member state
-  const [expandedMemberId, setExpandedMemberId] = useState<number | null>(null);
-  const [chatTargetEmail, setChatTargetEmail] = useState<string | null>(null);
+  // Layout state
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Channel Creation Modal State
   const [showAddChannel, setShowAddChannel] = useState(false);
@@ -62,8 +93,8 @@ export const WorkspaceLayout: React.FC = () => {
     if (!workspaceSlug) return;
     try {
       setLoading(true);
-      const workspaces = await api.listWorkspaces();
-      const ws = workspaces.find((w) => w.slug === workspaceSlug);
+      const workspacesList = await api.listWorkspaces();
+      const ws = workspacesList.find((w) => w.slug === workspaceSlug);
       
       if (!ws) {
         toast.error('Workspace not found.');
@@ -118,259 +149,425 @@ export const WorkspaceLayout: React.FC = () => {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white text-[#18181B]">
         <div className="text-center space-y-4">
-          <img src="/silo.png" alt="SILO Logo" className="h-10 w-auto object-contain animate-pulse" />
-          <p className="text-gray-500 text-sm">Synchronizing tenant context...</p>
+          <img src="/silo.png" alt="SILO Logo" className="h-10 w-auto object-contain animate-pulse mx-auto" />
+          <p className="text-muted-foreground text-sm">Synchronizing tenant context...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-white text-[#18181B] overflow-hidden font-sans">
-      {/* 1. Primary Left Sidebar */}
-      <aside className="w-64 border-r border-gray-200 bg-white flex flex-col h-full shrink-0">
-        {/* Workspace Title */}
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <Link to="/dashboard" className="flex items-center gap-2 hover:opacity-80">
-            <img src="/silo.png" alt="SILO Logo" className="h-6 w-auto object-contain" />
-            <span className="font-bold tracking-tight text-sm truncate max-w-[100px]">
-              {workspace?.name}
-            </span>
-          </Link>
-          <div className="flex items-center gap-1">
+    <div className="flex h-screen w-full flex-col bg-background text-foreground overflow-hidden font-sans">
+      {/* 1. TOP NAVBAR */}
+      <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-background px-4 z-10">
+         <div className="flex items-center gap-4">
+            <Link to="/dashboard" className="flex items-center gap-2">
+              <img src="/silo.png" alt="SILO Logo" className="h-6 w-auto object-contain" />
+            </Link>
+            
+            <Separator orientation="vertical" className="h-6" />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="font-semibold flex items-center gap-2 bg-gray-100/80 hover:bg-gray-200/80 text-sm px-2 py-1.5 h-auto rounded-md border border-gray-200">
+                  <div className="h-5 w-5 bg-teal-500 rounded text-white flex items-center justify-center text-xs font-bold mr-0.5">
+                    {workspace?.name.charAt(0).toUpperCase()}
+                  </div>
+                  {workspace?.name} <ChevronDown className="h-3.5 w-3.5 opacity-50 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-72 p-2 rounded-xl shadow-lg border-gray-200">
+                {/* Header */}
+                <div className="flex items-center gap-3 p-2">
+                  <div className="h-12 w-12 bg-teal-500 rounded-lg text-white flex items-center justify-center text-xl font-bold shrink-0">
+                    {workspace?.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-[15px]">{workspace?.name}</span>
+                    <span className="text-xs text-gray-500 mt-0.5">Free Forever · Upgrade</span>
+                  </div>
+                </div>
+
+                {/* Settings & People Buttons */}
+                <div className="flex items-center gap-2 px-2 py-2">
+                  <Button variant="outline" size="sm" className="w-1/2 flex items-center justify-center gap-2 text-xs h-8 border-gray-200" onClick={() => navigate(`/w/${workspaceSlug}/settings/billing`)}>
+                    <Settings className="h-3.5 w-3.5" /> Settings
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-1/2 flex items-center justify-center gap-2 text-xs h-8 border-gray-200">
+                    <Users className="h-3.5 w-3.5" /> People
+                  </Button>
+                </div>
+
+                <DropdownMenuSeparator className="my-1 border-gray-100" />
+
+                <div className="px-3 py-1.5">
+                  <span className="text-[11px] text-gray-500 font-medium">Manage</span>
+                </div>
+                
+                <DropdownMenuItem className="cursor-pointer py-1.5 px-3 text-[13px] flex items-center gap-3 focus:bg-gray-50">
+                  <AppWindow className="h-4 w-4 text-gray-600" /> Apps
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer py-1.5 px-3 text-[13px] flex items-center gap-3 focus:bg-gray-50">
+                  <LayoutTemplate className="h-4 w-4 text-gray-600" /> Templates
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer py-1.5 px-3 text-[13px] flex items-center gap-3 focus:bg-gray-50">
+                  <FileEdit className="h-4 w-4 text-gray-600" /> Custom Fields
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer py-1.5 px-3 text-[13px] flex items-center gap-3 focus:bg-gray-50">
+                  <Zap className="h-4 w-4 text-gray-600" /> Automations
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer py-1.5 px-3 text-[13px] flex items-center gap-3 justify-between focus:bg-gray-50">
+                  <div className="flex items-center gap-3">
+                    <Tags className="h-4 w-4 text-gray-600" /> Tag Manager
+                  </div>
+                  <span className="text-[10px] font-semibold bg-[#EBEBFE] text-[#5851DE] px-1.5 py-0.5 rounded">New</span>
+                </DropdownMenuItem>
+
+                <div className="p-2 mt-2">
+                  <Button variant="outline" className="w-full justify-center flex items-center gap-2 text-[13px] text-gray-700 font-medium hover:bg-gray-50 h-9 border-gray-200 rounded-lg shadow-sm" onClick={() => navigate('/onboarding')}>
+                    <Plus className="h-3.5 w-3.5" /> Create Workspace
+                  </Button>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+         </div>
+
+         <div className="ml-auto flex items-center gap-4">
             <button
               onClick={toggleConnection}
-              className={`p-1 rounded flex items-center justify-center transition-colors ${
-                isConnected ? 'text-green-600 bg-green-50 hover:bg-green-100' : 'text-red-500 bg-red-50 hover:bg-red-100'
+              className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
+                isConnected ? 'text-green-600 bg-green-50' : 'text-red-500 bg-red-50'
               }`}
-              title={isConnected ? 'Disconnect WebSocket' : 'Connect WebSocket'}
+              title={isConnected ? 'Connected' : 'Disconnected'}
             >
               {isConnected ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
             </button>
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="p-1 rounded text-gray-500 hover:text-[#18181B] hover:bg-gray-100"
-              title="Switch Workspace"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Sidebar Nav Items */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-6">
-          {/* Channels Section */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between px-2 mb-2 text-xs font-bold uppercase tracking-wider text-[#18181B]0">
-              <span>Threaded Channels</span>
-              <button
-                onClick={() => setShowAddChannel(true)}
-                className="hover:text-[#18181B]"
-                title="Create Channel"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <div className="space-y-0.5">
-              {channels.map((ch) => {
-                const isActive = location.pathname.includes(`/ch/${ch.id}`);
-                return (
-                  <Link
-                    key={ch.id}
-                    to={`/w/${workspaceSlug}/ch/${ch.id}`}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-gray-100 text-[#18181B] border-l-2 border-[#18181B]'
-                        : 'text-gray-500 hover:text-[#18181B] hover:bg-gray-50'
-                    }`}
-                  >
-                    <Hash className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{ch.name}</span>
-                    {ch.is_private && <span className="text-[10px] bg-gray-100 text-[#18181B]0 px-1 rounded">Private</span>}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Docs/Wikis Section */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between px-2 mb-2 text-xs font-bold uppercase tracking-wider text-[#18181B]0">
-              <span>Living Documentation</span>
-            </div>
-            <div className="space-y-0.5">
-              {/* API specification doc */}
-              <Link
-                to={`/w/${workspaceSlug}/docs/api-gateway-spec`}
-                className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  location.pathname.includes('/docs/api-gateway-spec')
-                    ? 'bg-gray-100 text-[#18181B] border-l-2 border-[#18181B]'
-                    : 'text-gray-500 hover:text-[#18181B] hover:bg-gray-50'
-                }`}
-              >
-                <BookOpen className="h-4 w-4 shrink-0 text-[#18181B]" />
-                <span className="truncate">📄 API Gateway V2 Spec</span>
-              </Link>
-              {/* Coturn doc */}
-              <Link
-                to={`/w/${workspaceSlug}/docs/coturn-traversal`}
-                className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  location.pathname.includes('/docs/coturn-traversal')
-                    ? 'bg-gray-100 text-[#18181B] border-l-2 border-[#18181B]'
-                    : 'text-gray-500 hover:text-[#18181B] hover:bg-gray-50'
-                }`}
-              >
-                <BookOpen className="h-4 w-4 shrink-0 text-[#18181B]" />
-                <span className="truncate">📄 Coturn Traversal Guide</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Direct Messages & Members Section */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between px-2 mb-2 text-xs font-bold uppercase tracking-wider text-[#18181B]0">
-              <span>Direct Messages</span>
-            </div>
-            <div className="space-y-0.5">
-              {members.map((member) => {
-                const isExpanded = expandedMemberId === member.user.id;
-                const isCurrentUser = member.user.email === user?.email; // Use email since user.id is not in AuthContext User
-                const isOnlineStatus = isOnline(member.user.id);
-                
-                return (
-                  <div key={member.id} className="flex flex-col">
-                    <button
-                      onClick={() => setExpandedMemberId(isExpanded ? null : member.user.id)}
-                      className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors w-full ${
-                        isExpanded
-                          ? 'bg-gray-100 text-[#18181B]'
-                          : 'text-gray-500 hover:text-[#18181B] hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="relative">
-                        <div className="h-5 w-5 bg-gray-200 text-gray-700 rounded-full flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
-                          {member.user.username.charAt(0)}
-                        </div>
-                        {isOnlineStatus && (
-                          <div className="absolute bottom-0 right-0 w-2 h-2 bg-[#18181B] rounded-full border border-white"></div>
-                        )}
-                      </div>
-                      <span className="truncate flex-1 text-left">{member.user.username} {isCurrentUser && '(You)'}</span>
-                    </button>
-                    
-                    {/* Action Bar */}
-                    {isExpanded && !isCurrentUser && (
-                      <div className="flex items-center gap-1 pl-9 pr-2 py-1 pb-2">
-                        <button
-                          onClick={() => {
-                            if (workspaceSlug) startCall(workspaceSlug, member.user.email, false);
-                          }}
-                          className="flex-1 flex justify-center items-center py-1.5 bg-gray-100 hover:bg-gray-100 hover:text-[#18181B] text-gray-500 rounded transition-colors"
-                          title="Voice Call"
-                        >
-                          <PhoneCall className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (workspaceSlug) startCall(workspaceSlug, member.user.email, true);
-                          }}
-                          className="flex-1 flex justify-center items-center py-1.5 bg-gray-100 hover:bg-gray-100 hover:text-[#18181B] text-gray-500 rounded transition-colors"
-                          title="Video Call"
-                        >
-                          <Video className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setChatTargetEmail(member.user.email);
-                          }}
-                          className="flex-1 flex justify-center items-center py-1.5 bg-gray-100 hover:bg-gray-100 hover:text-[#18181B] text-gray-500 rounded transition-colors"
-                          title="Message"
-                        >
-                          <MessageSquare className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                      {user?.username.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 rounded-full border-2 border-white"></div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-[280px] p-0 rounded-xl shadow-lg border border-gray-200" align="end" forceMount>
+                {/* Header Profile */}
+                <div className="p-4 flex items-center gap-3">
+                  <div className="relative">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-gray-800 text-white font-semibold">
+                        {user?.username.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 rounded-full border-2 border-white"></div>
                   </div>
-                );
-              })}
-            </div>
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-sm leading-tight text-gray-900">{user?.username}</span>
+                    <span className="text-xs text-gray-500 mt-0.5">Online</span>
+                  </div>
+                </div>
+
+                {/* Status Input */}
+                <div className="px-4 pb-3">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer">
+                    <span className="text-gray-400">😊</span>
+                    <span>Set status</span>
+                  </div>
+                </div>
+
+                {/* Notifications & Settings Group */}
+                <div className="py-1">
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center justify-between focus:bg-gray-50">
+                    <div className="flex items-center gap-3 text-gray-700">
+                      <VolumeX className="h-4 w-4" /> Mute notifications
+                    </div>
+                    <ChevronDown className="h-3.5 w-3.5 -rotate-90 text-gray-400" />
+                  </DropdownMenuItem>
+                </div>
+
+                <DropdownMenuSeparator className="bg-gray-100" />
+
+                <div className="py-1">
+                  <DropdownMenuItem onClick={() => navigate(`/w/${workspaceSlug}/settings/billing`)} className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                    <Settings className="h-4 w-4" /> Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                    <Bell className="h-4 w-4" /> Notifications
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                    <Palette className="h-4 w-4" /> Themes
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                    <Command className="h-4 w-4" /> Keyboard shortcuts
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center justify-between text-gray-700 focus:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <Download className="h-4 w-4" /> Download SILO App
+                    </div>
+                    <ExternalLink className="h-3.5 w-3.5 text-gray-400" />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center justify-between text-gray-700 focus:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <HelpCircle className="h-4 w-4" /> Help
+                    </div>
+                    <Bug className="h-3.5 w-3.5 text-gray-400" />
+                  </DropdownMenuItem>
+                </div>
+
+                <DropdownMenuSeparator className="bg-gray-100" />
+
+                {/* Personal Tools */}
+                <div className="py-1">
+                  <div className="px-4 py-1.5">
+                    <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Personal Tools</span>
+                  </div>
+                  
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center justify-between text-gray-700 focus:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-4 w-4" /> Create task
+                    </div>
+                    <Pin className="h-3 w-3 text-gray-400 rotate-45" />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                    <Briefcase className="h-4 w-4" /> My Work
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                    <Clock className="h-4 w-4" /> Track Time
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                    <FileText className="h-4 w-4" /> Notepad
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center justify-between text-gray-700 focus:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <Video className="h-4 w-4" /> Record a Clip
+                    </div>
+                    <Pin className="h-3 w-3 text-gray-400 rotate-45" />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center justify-between text-gray-700 focus:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <Mic className="h-4 w-4" /> Talk to Text
+                    </div>
+                    <Pin className="h-3 w-3 text-gray-400 rotate-45" />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                    <AlarmClock className="h-4 w-4" /> Create Reminder
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                    <File className="h-4 w-4" /> Create Doc
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                    <Monitor className="h-4 w-4" /> Create Whiteboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                    <Users className="h-4 w-4" /> View People
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                    <LayoutDashboard className="h-4 w-4" /> Create Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                    <Bot className="h-4 w-4" /> AI Notetaker
+                  </DropdownMenuItem>
+                </div>
+
+                <DropdownMenuSeparator className="bg-gray-100" />
+
+                <div className="py-1">
+                  <DropdownMenuItem className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                    <Trash2 className="h-4 w-4" /> Trash
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { logout(); navigate('/login'); }} className="cursor-pointer py-1.5 px-4 text-[13px] flex items-center gap-3 text-gray-700 focus:bg-gray-50">
+                    <LogOut className="h-4 w-4" /> Log out
+                  </DropdownMenuItem>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+         </div>
+      </header>
+
+      {/* 2. MAIN LAYOUT (SIDEBAR + OUTLET) */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Sidebar */}
+        <aside className={`${isSidebarCollapsed ? 'w-16' : 'w-64'} border-r bg-muted/20 flex flex-col transition-all duration-300 ease-in-out shrink-0 z-0`}>
+          <div className="flex h-12 items-center justify-between border-b px-2">
+            {!isSidebarCollapsed && <span className="px-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Menu</span>}
+            <Button variant="ghost" size="icon" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className={`ml-auto h-8 w-8 text-muted-foreground hover:text-foreground ${isSidebarCollapsed ? 'mx-auto ml-0' : ''}`}>
+              <PanelLeftClose className={`h-4 w-4 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`} />
+            </Button>
           </div>
-        </div>
+          
+          <ScrollArea className="flex-1">
+             {/* Channels Section */}
+             <div className="p-2">
+                {!isSidebarCollapsed && (
+                  <div className="flex items-center justify-between mb-2 px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    <span>Channels</span>
+                    <button onClick={() => setShowAddChannel(true)} className="hover:text-foreground">
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  {channels.map((ch) => {
+                    const isActive = location.pathname.includes(`/ch/${ch.id}`);
+                    const btn = (
+                      <Link
+                        key={ch.id}
+                        to={`/w/${workspaceSlug}/ch/${ch.id}`}
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                          isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        } ${isSidebarCollapsed ? 'justify-center' : ''}`}
+                      >
+                        <Hash className="h-4 w-4 shrink-0" />
+                        {!isSidebarCollapsed && <span className="truncate flex-1">{ch.name}</span>}
+                        {!isSidebarCollapsed && ch.is_private && <span className="text-[10px] bg-muted px-1 rounded">Priv</span>}
+                      </Link>
+                    );
+                    return isSidebarCollapsed ? (
+                      <Tooltip key={ch.id} delayDuration={0}>
+                        <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                        <TooltipContent side="right" className="flex items-center gap-2">
+                          {ch.name} {ch.is_private && <span className="text-[10px] bg-muted text-foreground px-1 rounded">Private</span>}
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : btn;
+                  })}
+                  {isSidebarCollapsed && (
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                         <button onClick={() => setShowAddChannel(true)} className="flex w-full items-center justify-center py-1.5 hover:bg-muted rounded-md text-muted-foreground hover:text-foreground mt-1">
+                           <Plus className="h-4 w-4" />
+                         </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">Add Channel</TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+             </div>
 
-        {/* Workspace Footer Actions */}
-        <div className="p-3 border-t border-gray-200 space-y-2">
-          {/* Billing Upgrade / Autopay Settings Link */}
-          <Link
-            to={`/w/${workspaceSlug}/settings/billing`}
-            className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              location.pathname.includes('/settings/billing')
-                ? 'bg-gray-100 text-[#18181B]'
-                : 'text-gray-500 hover:text-[#18181B] hover:bg-gray-50'
-            }`}
-          >
-            <Settings className="h-4 w-4 text-gray-500" />
-            <span>Billing & Members</span>
-          </Link>
+             <Separator className="my-2 mx-4 w-auto opacity-50" />
 
-          {/* User Info & Logout */}
-          <div className="flex items-center justify-between p-2 rounded bg-white/40 text-xs">
-            <div className="flex flex-col truncate max-w-[130px]">
-              <span className="font-semibold text-gray-700 truncate">{user?.username}</span>
-              <span className="text-[10px] text-[#18181B]0 truncate">{user?.email}</span>
-            </div>
-            <button
-              onClick={() => {
-                logout();
-                navigate('/login');
-              }}
-              className="text-[#18181B]0 hover:text-red-400 p-1"
-              title="Logout"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      </aside>
+             {/* Docs Section */}
+             <div className="p-2">
+                {!isSidebarCollapsed && (
+                  <div className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    <span>Documentation</span>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  {[
+                    { id: 'api-gateway-spec', name: 'API Gateway V2 Spec', icon: BookOpen },
+                    { id: 'coturn-traversal', name: 'Coturn Traversal Guide', icon: BookOpen }
+                  ].map(doc => {
+                    const isActive = location.pathname.includes(`/docs/${doc.id}`);
+                    const Icon = doc.icon;
+                    const btn = (
+                      <Link
+                        key={doc.id}
+                        to={`/w/${workspaceSlug}/docs/${doc.id}`}
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                          isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        } ${isSidebarCollapsed ? 'justify-center' : ''}`}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        {!isSidebarCollapsed && <span className="truncate flex-1">{doc.name}</span>}
+                      </Link>
+                    );
+                    return isSidebarCollapsed ? (
+                      <Tooltip key={doc.id} delayDuration={0}>
+                        <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                        <TooltipContent side="right">{doc.name}</TooltipContent>
+                      </Tooltip>
+                    ) : btn;
+                  })}
+                </div>
+             </div>
 
-      {/* 2. Main Workspace View Area */}
-      <main className="flex-1 flex flex-col h-full bg-white overflow-hidden relative">
-        <Outlet />
+             <Separator className="my-2 mx-4 w-auto opacity-50" />
 
-      </main>
-      <EphemeralChat 
-        targetEmail={chatTargetEmail} 
-        onClose={() => setChatTargetEmail(null)}
-        onIncomingMessage={(senderEmail) => setChatTargetEmail(senderEmail)}
-      />
+             {/* DMs Section */}
+             <div className="p-2">
+                {!isSidebarCollapsed && (
+                  <div className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    <span>Direct Messages</span>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  {members.map(member => {
+                    const isCurrentUser = member.user.email === user?.email;
+                    const isOnlineStatus = isOnline(member.user.id);
+                    
+                    const btn = (
+                      <div key={member.id} className="flex flex-col">
+                        <button
+                          onClick={() => navigate(`/w/${workspaceSlug}/dm/${member.user.email}`)}
+                          className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors w-full text-muted-foreground hover:bg-muted hover:text-foreground ${isSidebarCollapsed ? 'justify-center' : ''}`}
+                        >
+                          <div className="relative shrink-0 flex items-center justify-center">
+                            <Avatar className="h-5 w-5 rounded-md">
+                              <AvatarFallback className="rounded-md bg-muted-foreground/20 text-[10px] text-foreground font-semibold">
+                                {member.user.username.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            {isOnlineStatus && (
+                              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background"></div>
+                            )}
+                          </div>
+                          {!isSidebarCollapsed && <span className="truncate flex-1 text-left">{member.user.username} {isCurrentUser && '— You'}</span>}
+                        </button>
+                      </div>
+                    );
+
+                    return isSidebarCollapsed ? (
+                      <Tooltip key={member.id} delayDuration={0}>
+                        <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                        <TooltipContent side="right">{member.user.username}</TooltipContent>
+                      </Tooltip>
+                    ) : btn;
+                  })}
+                </div>
+             </div>
+          </ScrollArea>
+        </aside>
+
+        {/* Main Workspace View Area */}
+        <main className="flex-1 flex flex-col h-full bg-white overflow-hidden relative">
+          <Outlet />
+        </main>
+        
+        {/* Right Sidebar Details Area */}
+        <RightSidebar />
+      </div>
 
       {/* 3. Add Channel Modal */}
       {showAddChannel && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-gray-200 max-w-md w-full rounded-xl p-6 space-y-4">
-            <h3 className="text-lg font-bold text-[#18181B]">Create Threaded Channel</h3>
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-card border max-w-md w-full rounded-xl p-6 space-y-4 shadow-lg">
+            <h3 className="text-lg font-bold">Create Threaded Channel</h3>
             <form onSubmit={handleCreateChannel} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="ch-name" className="text-gray-700">Channel Name</Label>
-                <div className="flex items-center gap-1 bg-white border border-gray-200 rounded px-3 py-0.5">
-                  <span className="text-[#18181B]0 text-sm">#</span>
+                <Label htmlFor="ch-name">Channel Name</Label>
+                <div className="flex items-center gap-2 px-3 py-1 bg-background border rounded-md focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                  <span className="text-muted-foreground text-sm font-semibold">#</span>
                   <input
                     id="ch-name"
                     required
                     placeholder="e.g. design-assets"
                     value={newChannelName}
                     onChange={(e) => setNewChannelName(e.target.value)}
-                    className="flex-1 bg-transparent py-2 text-sm text-[#18181B] focus:outline-none"
+                    className="flex-1 bg-transparent py-1.5 text-sm focus:outline-none"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ch-desc" className="text-gray-700">Description</Label>
+                <Label htmlFor="ch-desc">Description</Label>
                 <Input
                   id="ch-desc"
                   placeholder="Topic focus of this channel"
                   value={newChannelDesc}
                   onChange={(e) => setNewChannelDesc(e.target.value)}
-                  className="bg-white border-gray-200 text-[#18181B]"
                 />
               </div>
               <div className="flex items-center gap-2 py-2">
@@ -379,9 +576,9 @@ export const WorkspaceLayout: React.FC = () => {
                   id="ch-private"
                   checked={newChannelPrivate}
                   onChange={(e) => setNewChannelPrivate(e.target.checked)}
-                  className="rounded border-gray-200 bg-white text-[#18181B] focus:ring-[#18181B]"
+                  className="rounded border-input text-primary focus:ring-primary h-4 w-4"
                 />
-                <Label htmlFor="ch-private" className="text-gray-700">Private Channel</Label>
+                <Label htmlFor="ch-private" className="cursor-pointer">Private Channel</Label>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -389,11 +586,10 @@ export const WorkspaceLayout: React.FC = () => {
                   type="button"
                   variant="outline"
                   onClick={() => setShowAddChannel(false)}
-                  className="border-gray-200 hover:bg-gray-100 text-gray-700"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-[#18181B] text-white hover:bg-black font-bold">
+                <Button type="submit">
                   Create Channel
                 </Button>
               </div>
