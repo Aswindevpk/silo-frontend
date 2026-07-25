@@ -101,12 +101,8 @@ export const ChannelFeed: React.FC = () => {
 
 
   // Actions
-  const handleSendMessage = (content: string, _attachments: any[] = []) => {
-    if (!content.trim() || !channelId) return;
-    
-    // We send via websocket (this lacks attachments in old implementation, but we'll assume it works)
-    // We could alternatively use a REST post here to support attachments directly.
-    sendChannelMessage(content); 
+  const handleSendMessage = (content: string, attachments: any[] = []) => {
+    sendChannelMessage(content, attachments);
   };
 
 

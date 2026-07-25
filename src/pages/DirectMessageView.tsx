@@ -99,9 +99,8 @@ export const DirectMessageView: React.FC = () => {
     channelId || 0
   );
 
-  const handleSendMessage = (content: string, _attachments: any[] = []) => {
-    if (!content.trim() || !targetEmail || !workspaceSlug || !channelId) return;
-    sendChannelMessage(content);
+  const handleSendMessage = (content: string, attachments: any[] = []) => {
+    sendChannelMessage(content, attachments);
   };
 
 

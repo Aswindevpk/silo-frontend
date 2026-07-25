@@ -6,7 +6,7 @@ import { ReactionPicker } from './ReactionPicker';
 import { MessageInput } from './MessageInput';
 import { 
   MessageSquare, Pin, Pencil, Trash2, 
-  MoreHorizontal 
+  MoreHorizontal, File, Mic
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -135,6 +135,43 @@ export const MessageItem: React.FC<MessageItemProps> = ({
             {message.is_edited && !message.is_deleted && (
               <span className="text-[10px] text-gray-400 ml-1">(edited)</span>
             )}
+          </div>
+        )}
+
+        {/* Attachments */}
+        {!message.is_deleted && message.attachments && message.attachments.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {message.attachments.map((att: any, idx: number) => (
+              <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden bg-white max-w-md">
+                {att.type === 'image' ? (
+                  <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center bg-gray-50">
+                    <img src={att.url} alt={att.name} className="max-h-80 max-w-full object-contain" loading="lazy" />
+                  </a>
+                ) : att.type === 'audio' ? (
+                  <div className="p-2 w-[280px]">
+                    <div className="flex items-center gap-2 mb-2 text-xs text-gray-500 font-medium">
+                      <Mic className="h-4 w-4" /> Voice Note
+                    </div>
+                    <audio controls src={att.url} className="w-full h-8" />
+                  </div>
+                ) : (
+                  <a 
+                    href={att.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors w-[280px]"
+                  >
+                    <div className="h-10 w-10 shrink-0 bg-blue-50 text-blue-600 rounded-md flex items-center justify-center">
+                      <File className="h-5 w-5" />
+                    </div>
+                    <div className="flex flex-col overflow-hidden">
+                      <span className="text-sm font-semibold text-gray-900 truncate">{att.name}</span>
+                      <span className="text-xs text-gray-500">{(att.size / 1024 / 1024).toFixed(2)} MB</span>
+                    </div>
+                  </a>
+                )}
+              </div>
+            ))}
           </div>
         )}
 

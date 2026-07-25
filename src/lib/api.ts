@@ -250,6 +250,13 @@ export const api = {
     return response.data;
   },
 
+  async getPresignedUrl(filename: string, contentType: string) {
+    const response = await apiClient.get('/api/v1/chats/presigned-url/', {
+      params: { filename, content_type: contentType }
+    });
+    return response.data;
+  },
+
   async resetPassword(data: ResetPasswordRequest) {
     const response = await apiClient.post('/api/v1/users/reset-password/', data);
     return response.data;

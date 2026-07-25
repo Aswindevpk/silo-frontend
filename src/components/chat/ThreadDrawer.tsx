@@ -75,19 +75,14 @@ export const ThreadDrawer: React.FC = () => {
     };
   }, [channelId, parentMessage.id, registerMessageHandler, queryClient]);
 
-  const { sendReaction, sendEdit, sendDelete, sendPin } = useSiloChatRoom(
+  const { sendReaction, sendEdit, sendDelete, sendPin, sendChannelMessage } = useSiloChatRoom(
     workspaceId || 0,
     channelId || 0
   );
-  const { sendJsonMessage } = useWebSocket();
 
-  const handleSendReply = async (content: string, _attachments: any[] = []) => {
-    sendJsonMessage('chat.send_message', {
-      content,
-      attachments: [],
-      client_msg_id: Math.random().toString(36).substring(7),
-      parent_message_id: parentMessage.id
-    }, workspaceId.toString(), channelId.toString());
+  const handleSendReply = (content: string, attachments: any[] = []) => {
+    if (!parentMessage.id) return;
+    sendChannelMessage(content, attachments, parentMessage.id);
   };
 
   return (

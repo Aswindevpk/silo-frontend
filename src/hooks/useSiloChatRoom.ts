@@ -4,10 +4,11 @@ import { useWebSocket } from '../context/WebSocketContext';
 export function useSiloChatRoom(workspaceId: number, channelId: number) {
   const { sendJsonMessage } = useWebSocket();
 
-  const sendChannelMessage = useCallback((textContent: string) => {
+  const sendChannelMessage = useCallback((textContent: string, attachments: any[] = [], parent_id?: number | null) => {
     sendJsonMessage('chat.send_message', {
       content: textContent,
-      attachments: [],
+      attachments: attachments,
+      parent_id: parent_id,
       client_msg_id: Math.random().toString(36).substring(7)
     }, workspaceId.toString(), channelId.toString());
   }, [sendJsonMessage, workspaceId, channelId]);
