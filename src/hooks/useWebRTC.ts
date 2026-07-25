@@ -29,8 +29,7 @@ const DEFAULT_ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-  ],
-  iceTransportPolicy: 'relay'
+  ]
 };
 
 export const useWebRTC = (): UseWebRTCReturn => {
@@ -137,10 +136,12 @@ export const useWebRTC = (): UseWebRTCReturn => {
     let iceConfig: RTCConfiguration = DEFAULT_ICE_SERVERS;
     try {
       const turnCreds = await api.getTurnCredentials();
-      if (turnCreds && turnCreds.iceServers) {
-        const servers = Array.isArray(turnCreds.iceServers) 
-          ? turnCreds.iceServers 
-          : [turnCreds.iceServers];
+      const actualIceServers = turnCreds?.iceServers || turnCreds?.data?.iceServers;
+      
+      if (actualIceServers) {
+        const servers = Array.isArray(actualIceServers) 
+          ? actualIceServers 
+          : [actualIceServers];
           
         iceConfig = { 
           iceServers: servers,
@@ -166,10 +167,12 @@ export const useWebRTC = (): UseWebRTCReturn => {
     let iceConfig: RTCConfiguration = DEFAULT_ICE_SERVERS;
     try {
       const turnCreds = await api.getTurnCredentials();
-      if (turnCreds && turnCreds.iceServers) {
-        const servers = Array.isArray(turnCreds.iceServers) 
-          ? turnCreds.iceServers 
-          : [turnCreds.iceServers];
+      const actualIceServers = turnCreds?.iceServers || turnCreds?.data?.iceServers;
+      
+      if (actualIceServers) {
+        const servers = Array.isArray(actualIceServers) 
+          ? actualIceServers 
+          : [actualIceServers];
           
         iceConfig = { 
           iceServers: servers,
