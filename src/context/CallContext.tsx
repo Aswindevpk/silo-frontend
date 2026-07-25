@@ -7,13 +7,14 @@ import { useAuth } from './AuthContext';
 
 interface CallContextType {
   callStatus: 'idle' | 'calling' | 'ringing' | 'connecting' | 'connected' | 'reconnecting' | 'failed';
-  incomingCall: { callerId: number; callerEmail: string; withVideo?: boolean; sdp: RTCSessionDescriptionInit } | null;
+  incomingCall: { callerId: number; callerEmail: string; withVideo?: boolean; sdp: RTCSessionDescriptionInit; channelId: number } | null;
   activeTargetEmail: string | null;
+  activeChannelId: number | null;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   isMuted: boolean;
   isVideoEnabled: boolean;
-  startCall: (workspaceSlug: string, receiverEmail: string, withVideo?: boolean) => Promise<void>;
+  startCall: (channelId: number, receiverEmail: string, withVideo?: boolean) => Promise<void>;
   acceptCall: (withVideo?: boolean) => Promise<void>;
   rejectCall: () => void;
   endCall: () => void;
@@ -27,9 +28,11 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { sendJsonMessage, registerMessageHandler } = useWebSocket();
   const { user } = useAuth();
   
-  const [incomingCall, setIncomingCall] = useState<{ callerId: number; callerEmail: string; withVideo?: boolean; sdp: RTCSessionDescriptionInit } | null>(null);
+  const [incomingCall, setIncomingCall] = useState<{ callerId: number; callerEmail: string; withVideo?: boolean; sdp: RTCSessionDescriptionInit; channelId: number } | null>(null);
   const [activeTargetEmail, setActiveTargetEmail] = useState<string | null>(null);
+  const [activeChannelId, setActiveChannelId] = useState<number | null>(null);
   const targetEmailRef = useRef<string | null>(null);
+  const channelIdRef = useRef<number | null>(null);
 
   const {
     callStatus,
@@ -68,70 +71,69 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     onIceCandidateRef.current = (candidate: RTCIceCandidate) => {
       // Send ICE candidate to peer
-      if (targetUserId !== null) {
-        sendJsonMessage('calls', {
-          type: 'ice_candidate',
+      if (channelIdRef.current) {
+        sendJsonMessage('webrtc.ice_candidate', {
           target_user_id: targetUserId,
           candidate: candidate
-        });
-      } else if (targetEmailRef.current) {
-        sendJsonMessage('calls', {
-          type: 'ice_candidate',
-          receiver_email: targetEmailRef.current,
-          candidate: candidate
-        });
+        }, undefined, String(channelIdRef.current));
       }
     };
 
     onRenegotiationRef.current = (offer: RTCSessionDescriptionInit) => {
-      if (targetUserId !== null) {
-        sendJsonMessage('calls', {
-          type: 'call_renegotiate',
+      if (channelIdRef.current) {
+        sendJsonMessage('webrtc.call_renegotiate', {
           target_user_id: targetUserId,
           sdp: offer
-        });
+        }, undefined, String(channelIdRef.current));
       }
     };
   }, [targetUserId, sendJsonMessage, onIceCandidateRef, onRenegotiationRef]);
 
   // 3. Register WebSocket Signal Handlers
   useEffect(() => {
-    const cleanupOffer = registerMessageHandler('calls', 'call_offer', async (data: any) => {
+    const cleanupOffer = registerMessageHandler('webrtc.call_offer', async (data: any, frame: any) => {
+      const payload = data.payload || data;
       setIncomingCall({
-        callerId: data.sender_id,
-        callerEmail: data.caller_email || 'Member',
-        withVideo: data.with_video || false,
-        sdp: data.sdp
+        callerId: payload.sender_id,
+        callerEmail: payload.caller_email || 'Member',
+        withVideo: payload.with_video || false,
+        sdp: payload.sdp,
+        channelId: parseInt(frame.channel_id, 10)
       });
       setCallStatus('ringing');
-      toast.info(`Incoming voice call from ${data.caller_email || 'member'}`);
+      toast.info(`Incoming voice call from ${payload.caller_email || 'member'}`);
     });
 
-    const cleanupAnswer = registerMessageHandler('calls', 'call_answer', async (data: any) => {
+    const cleanupAnswer = registerMessageHandler('webrtc.call_answer', async (data: any) => {
+      const payload = data.payload || data;
       toast.success('Call accepted. Negotiating audio stream...');
-      // Caller saves the target ID they got from the answer
-      setTargetUserId(data.sender_id);
-      await handleRemoteAnswer(data.sdp);
+      setTargetUserId(payload.sender_id);
+      await handleRemoteAnswer(payload.sdp);
     });
 
-    const cleanupIce = registerMessageHandler('calls', 'ice_candidate', async (data: any) => {
-      if (data.candidate) {
-        await addIceCandidate(data.candidate);
+    const cleanupIce = registerMessageHandler('webrtc.ice_candidate', async (data: any) => {
+      const payload = data.payload || data;
+      if (payload.candidate) {
+        await addIceCandidate(payload.candidate);
       }
     });
 
-    const cleanupEnd = registerMessageHandler('calls', 'call_end', () => {
+    const cleanupEnd = registerMessageHandler('webrtc.call_end', () => {
       toast.error('The call has ended.');
       hookEndCall();
       setIncomingCall(null);
       setActiveTargetEmail(null);
+      setActiveChannelId(null);
+      channelIdRef.current = null;
     });
 
-    const cleanupReject = registerMessageHandler('calls', 'call_reject', () => {
+    const cleanupReject = registerMessageHandler('webrtc.call_reject', () => {
       toast.error('The call was rejected.');
       hookEndCall();
       setIncomingCall(null);
       setActiveTargetEmail(null);
+      setActiveChannelId(null);
+      channelIdRef.current = null;
     });
 
     return () => {
@@ -144,18 +146,19 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [registerMessageHandler, handleRemoteAnswer, addIceCandidate, hookEndCall, setCallStatus, setTargetUserId]);
 
   // 4. Implement Public Context Methods
-  const startCall = async (_workspaceSlug: string, receiverEmail: string, withVideo: boolean = false) => {
+  const startCall = async (channelId: number, receiverEmail: string, withVideo: boolean = false) => {
     try {
       targetEmailRef.current = receiverEmail;
+      channelIdRef.current = channelId;
+      setActiveChannelId(channelId);
       const offer = await hookStartCall(null, withVideo);
       
-      sendJsonMessage('calls', {
-        type: 'call_offer',
+      sendJsonMessage('webrtc.call_offer', {
         receiver_email: receiverEmail, 
         caller_email: user?.email,
         with_video: withVideo,
         sdp: offer
-      });
+      }, undefined, String(channelId));
       setActiveTargetEmail(receiverEmail);
       toast.info(`Dialing ${receiverEmail}...`);
     } catch (err: any) {
@@ -165,6 +168,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       hookEndCall();
       targetEmailRef.current = null;
       setActiveTargetEmail(null);
+      channelIdRef.current = null;
+      setActiveChannelId(null);
     }
   };
 
@@ -172,13 +177,14 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!incomingCall) return;
     try {
       targetEmailRef.current = incomingCall.callerEmail;
+      channelIdRef.current = incomingCall.channelId;
+      setActiveChannelId(incomingCall.channelId);
       const answer = await hookAcceptCall(incomingCall.callerId, incomingCall.sdp, withVideo || incomingCall.withVideo);
       
-      sendJsonMessage('calls', {
-        type: 'call_answer',
+      sendJsonMessage('webrtc.call_answer', {
         target_user_id: incomingCall.callerId,
         sdp: answer
-      });
+      }, undefined, String(incomingCall.channelId));
       setActiveTargetEmail(incomingCall.callerEmail);
       setIncomingCall(null);
     } catch (err: any) {
@@ -187,37 +193,37 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIncomingCall(null);
       targetEmailRef.current = null;
       setActiveTargetEmail(null);
+      channelIdRef.current = null;
+      setActiveChannelId(null);
     }
   };
 
   const rejectCall = () => {
     if (incomingCall) {
-      sendJsonMessage('calls', {
-        type: 'call_reject',
+      sendJsonMessage('webrtc.call_reject', {
         target_user_id: incomingCall.callerId
-      });
+      }, undefined, String(incomingCall.channelId));
     }
     hookRejectCall();
     setIncomingCall(null);
     targetEmailRef.current = null;
     setActiveTargetEmail(null);
+    channelIdRef.current = null;
+    setActiveChannelId(null);
   };
 
   const endCall = () => {
-    if (targetUserId) {
-      sendJsonMessage('calls', {
-        type: 'call_end',
-        target_user_id: targetUserId
-      });
-    } else if (targetEmailRef.current) {
-      sendJsonMessage('calls', {
-        type: 'call_end',
+    if (channelIdRef.current) {
+      sendJsonMessage('webrtc.call_end', {
+        target_user_id: targetUserId,
         receiver_email: targetEmailRef.current
-      });
+      }, undefined, String(channelIdRef.current));
     }
     hookEndCall();
     targetEmailRef.current = null;
     setActiveTargetEmail(null);
+    channelIdRef.current = null;
+    setActiveChannelId(null);
   };
 
   return (
@@ -225,6 +231,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       callStatus,
       incomingCall,
       activeTargetEmail,
+      activeChannelId,
       localStream,
       remoteStream,
       isMuted,

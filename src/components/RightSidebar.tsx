@@ -4,6 +4,7 @@ import { X, Mail, Clock, User as UserIcon, Search, Filter, Plus, Info } from 'lu
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { ThreadDrawer } from './chat/ThreadDrawer';
 
 export const RightSidebar: React.FC = () => {
   const { isOpen, type, data, closeSidebar } = useRightSidebar();
@@ -12,8 +13,11 @@ export const RightSidebar: React.FC = () => {
 
   return (
     <aside className="w-[340px] border-l bg-white flex flex-col h-full overflow-hidden shrink-0 transition-all duration-300 ease-in-out">
-      <ScrollArea className="flex-1">
-        {type === 'profile' && data && (
+      {type === 'thread' ? (
+        <ThreadDrawer />
+      ) : (
+        <ScrollArea className="flex-1">
+          {type === 'profile' && data && (
           <div className="flex flex-col px-5 py-4">
             
             {/* Header Info */}
@@ -121,8 +125,9 @@ export const RightSidebar: React.FC = () => {
              </div>
           </div>
           </div>
-        )}
-      </ScrollArea>
+          )}
+        </ScrollArea>
+      )}
     </aside>
   );
 };

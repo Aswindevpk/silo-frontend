@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { WebSocketProvider } from '@/context/WebSocketContext';
 import { CallProvider } from '@/context/CallContext';
@@ -9,7 +9,6 @@ import { Register } from '@/pages/Register';
 import { VerifyEmail } from '@/pages/VerifyEmail';
 import { ForgotPassword } from '@/pages/ForgotPassword';
 import { ResetPassword } from '@/pages/ResetPassword';
-import { Dashboard } from '@/pages/Dashboard';
 import { Onboarding } from '@/pages/Onboarding';
 import { WorkspaceLayout } from '@/pages/WorkspaceLayout';
 import { ChannelFeed } from '@/pages/ChannelFeed';
@@ -25,6 +24,7 @@ import { HowItWorks } from '@/pages/HowItWorks';
 import { Privacy } from '@/pages/Privacy';
 import { Terms } from '@/pages/Terms';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { RootRedirect } from '@/components/RootRedirect';
 
 function App() {
   return (
@@ -87,14 +87,6 @@ function App() {
 
                   {/* Protected Routes */}
                   <Route
-                    path="/dashboard"
-                    element={
-                      <ProtectedRoute requireAuth={true}>
-                        <Dashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
                     path="/onboarding"
                     element={
                       <ProtectedRoute requireAuth={true}>
@@ -125,7 +117,7 @@ function App() {
                   <Route path="/privacy" element={<Privacy />} />
                   <Route path="/terms" element={<Terms />} />
                   <Route path="/" element={<LandingPage />} />
-                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="*" element={<RootRedirect />} />
                 </Routes>
                 <CallWidget />
               </RightSidebarProvider>

@@ -34,10 +34,10 @@ export const usePresence = (_workspaceSlug?: string) => {
   const { registerMessageHandler } = useWebSocket();
   
   useEffect(() => {
-    const unsubscribe = registerMessageHandler('system', 'presence_update', (data: any) => {
-      if (data.action === 'user_joined') {
+    const unsubscribe = registerMessageHandler('presence.status_change', (data: any) => {
+      if (data.status === 'online') {
         dispatch(userJoined(data.user_id));
-      } else if (data.action === 'user_left') {
+      } else if (data.status === 'offline') {
         dispatch(userLeft(data.user_id));
       }
     });

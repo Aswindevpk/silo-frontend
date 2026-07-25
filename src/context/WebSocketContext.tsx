@@ -2,14 +2,13 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { wsManager } from '@/lib/WebSocketManager';
 import { useAuth } from '@/context/AuthContext';
 
-type StreamNamespace = 'system' | 'chat' | 'calls';
 
 interface WebSocketContextType {
   isConnected: boolean;
   isAuthenticated: boolean;
-  subscribeToChannel: (channelId: number) => void;
-  sendJsonMessage: (stream: StreamNamespace, message: any) => void;
-  registerMessageHandler: (stream: StreamNamespace, type: string, handler: (data: any) => void) => () => void;
+  subscribeToChannel: (channelId: number | string, workspaceId?: string) => void;
+  sendJsonMessage: (type: string, payload: any, workspaceId?: string, channelId?: string) => void;
+  registerMessageHandler: (type: string, handler: (data: any, frame: any) => void) => () => void;
   toggleConnection: () => void;
 }
 

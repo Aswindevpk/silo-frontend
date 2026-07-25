@@ -6,6 +6,7 @@ import { MessageSquare, X, Send } from 'lucide-react';
 interface Message {
   id: string;
   sender_email: string;
+  sender_username?: string;
   content: string;
   is_mine: boolean;
   timestamp: Date;
@@ -35,20 +36,22 @@ export const EphemeralChat: React.FC<EphemeralChatProps> = ({ targetEmail, onClo
   }, [targetEmail]);
 
   useEffect(() => {
-    const cleanup = registerMessageHandler('chat', 'ephemeral_chat', (data: any) => {
+    const cleanup = registerMessageHandler('chat.message_received', (data: any) => {
       // Received a direct message
-      const { sender_email, content } = data;
+      const msg = data.payload || data;
+      const sender_email = msg.sender?.email || msg.sender_email || '';
       const newMessage: Message = {
         id: Math.random().toString(36).substring(7),
         sender_email,
-        content,
+        sender_username: msg.sender?.username,
+        content: msg.content,
         is_mine: false,
         timestamp: new Date()
       };
       
       setMessages((prev) => [...prev, newMessage]);
       
-      setMessages((prev) => [...prev, newMessage]);
+
       
       // Auto-open if closed and we received a message
       if (onIncomingMessage) {
@@ -71,16 +74,16 @@ export const EphemeralChat: React.FC<EphemeralChatProps> = ({ targetEmail, onClo
     if (!inputMessage.trim() || !activeChat) return;
 
     // Send via WebSocket (bypasses DB)
-    sendJsonMessage('chat', {
-      type: 'ephemeral_chat',
+    sendJsonMessage('chat.send_message', {
       receiver_email: activeChat,
       content: inputMessage.trim()
-    });
+    }, "0", "0");
 
     // Append my own message locally
     const newMessage: Message = {
       id: Math.random().toString(36).substring(7),
       sender_email: 'Me',
+      sender_username: 'Me',
       content: inputMessage.trim(),
       is_mine: true,
       timestamp: new Date()
@@ -128,7 +131,7 @@ export const EphemeralChat: React.FC<EphemeralChatProps> = ({ targetEmail, onClo
               messages.map((msg) => (
                 <div key={msg.id} className={`flex flex-col ${msg.is_mine ? 'items-end' : 'items-start'}`}>
                   <div className="text-[10px] text-zinc-500 mb-1 px-1">
-                    {msg.sender_email} • {msg.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    {msg.sender_username || msg.sender_email} • {msg.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                   </div>
                   <div className={`px-3 py-2 rounded-xl text-sm max-w-[85%] break-words shadow-sm ${msg.is_mine ? 'bg-emerald-500 text-zinc-950 rounded-br-sm' : 'bg-zinc-800 text-zinc-100 rounded-bl-sm'}`}>
                     {msg.content}

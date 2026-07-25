@@ -89,6 +89,11 @@ export const WorkspaceLayout: React.FC = () => {
   const [newChannelDesc, setNewChannelDesc] = useState('');
   const [newChannelPrivate, setNewChannelPrivate] = useState(false);
 
+  // Workspace Creation Modal State
+  const [showAddWorkspace, setShowAddWorkspace] = useState(false);
+  const [newWorkspaceName, setNewWorkspaceName] = useState('');
+  const [creatingWorkspace, setCreatingWorkspace] = useState(false);
+
   // Fetch Workspace details and channels
   const loadWorkspaceDetails = async () => {
     if (!workspaceSlug) return;
@@ -99,7 +104,7 @@ export const WorkspaceLayout: React.FC = () => {
       
       if (!ws) {
         toast.error('Workspace not found.');
-        navigate('/dashboard');
+        navigate('/');
         return;
       }
       setWorkspace(ws);
@@ -147,6 +152,40 @@ export const WorkspaceLayout: React.FC = () => {
     }
   };
 
+  const handleCreateWorkspace = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newWorkspaceName) return;
+    
+    try {
+      setCreatingWorkspace(true);
+      const slug = newWorkspaceName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const ws = await api.createWorkspace(newWorkspaceName, slug);
+      toast.success('Workspace created successfully!');
+      setShowAddWorkspace(false);
+      setNewWorkspaceName('');
+      navigate(`/w/${ws.slug}`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create workspace.');
+    } finally {
+      setCreatingWorkspace(false);
+    }
+  };
+
+  const handleSetDefaultWorkspace = async (e: React.MouseEvent, slug: string) => {
+    e.stopPropagation();
+    try {
+      await api.setDefaultWorkspace(slug);
+      toast.success('Default workspace updated!');
+      // Update local state without reloading
+      setAllWorkspaces(prev => prev.map(w => ({
+        ...w,
+        is_default: w.slug === slug
+      })));
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to set default workspace.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white text-[#18181B]">
@@ -163,7 +202,7 @@ export const WorkspaceLayout: React.FC = () => {
       {/* 1. TOP NAVBAR */}
       <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-background px-4 z-10">
          <div className="flex items-center gap-4">
-            <Link to="/dashboard" className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-2">
               <img src="/silo.png" alt="SILO Logo" className="h-6 w-auto object-contain" />
             </Link>
             
@@ -180,13 +219,20 @@ export const WorkspaceLayout: React.FC = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-72 p-2 rounded-xl shadow-lg border-gray-200">
                 {/* Header */}
-                <div className="flex items-center gap-3 p-2">
-                  <div className="h-12 w-12 bg-teal-500 rounded-lg text-white flex items-center justify-center text-xl font-bold shrink-0">
-                    {workspace?.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-semibold text-[15px]">{workspace?.name}</span>
-                    <span className="text-xs text-gray-500 mt-0.5">Free Forever · Upgrade</span>
+                <div className="flex items-center justify-between p-2">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 bg-teal-500 rounded-lg text-white flex items-center justify-center text-xl font-bold shrink-0">
+                      {workspace?.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-[15px]">{workspace?.name}</span>
+                        {workspace?.is_default && (
+                          <span className="text-[9px] font-bold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded uppercase tracking-wider">Default</span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500 mt-0.5">Free Forever · Upgrade</span>
+                    </div>
                   </div>
                 </div>
 
@@ -235,17 +281,30 @@ export const WorkspaceLayout: React.FC = () => {
                   <DropdownMenuItem 
                     key={w.id}
                     onClick={() => navigate(`/w/${w.slug}`)} 
-                    className="cursor-pointer py-2 px-3 text-[13px] flex items-center gap-3 focus:bg-gray-50"
+                    className="cursor-pointer py-2 px-3 text-[13px] flex items-center justify-between focus:bg-gray-50 group"
                   >
-                    <div className="h-6 w-6 bg-teal-600 rounded text-white flex items-center justify-center text-[10px] font-bold shrink-0">
-                      {w.name.charAt(0).toUpperCase()}
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="h-6 w-6 bg-teal-600 rounded text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                        {w.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="font-medium text-gray-700 truncate">{w.name}</span>
+                      {w.is_default && (
+                        <span className="text-[9px] font-bold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded uppercase tracking-wider ml-1">Default</span>
+                      )}
                     </div>
-                    <span className="font-medium text-gray-700 truncate">{w.name}</span>
+                    {!w.is_default && (
+                      <button 
+                        onClick={(e) => handleSetDefaultWorkspace(e, w.slug)}
+                        className="opacity-0 group-hover:opacity-100 text-[10px] font-semibold text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded transition-all"
+                      >
+                        Set Default
+                      </button>
+                    )}
                   </DropdownMenuItem>
                 ))}
 
                 <div className="p-2 mt-1">
-                  <Button variant="outline" className="w-full justify-center flex items-center gap-2 text-[13px] text-gray-700 font-medium hover:bg-gray-50 h-9 border-gray-200 rounded-lg shadow-sm" onClick={() => navigate('/onboarding')}>
+                  <Button variant="outline" className="w-full justify-center flex items-center gap-2 text-[13px] text-gray-700 font-medium hover:bg-gray-50 h-9 border-gray-200 rounded-lg shadow-sm" onClick={() => setShowAddWorkspace(true)}>
                     <Plus className="h-3.5 w-3.5" /> Create Workspace
                   </Button>
                 </div>
@@ -511,8 +570,11 @@ export const WorkspaceLayout: React.FC = () => {
              {/* DMs Section */}
              <div className="p-2">
                 {!isSidebarCollapsed && (
-                  <div className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <div className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
                     <span>Direct Messages</span>
+                    <button onClick={() => navigate(`/w/${workspaceSlug}/people`)} className="hover:text-foreground">
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 )}
                 <div className="space-y-1">
@@ -612,6 +674,42 @@ export const WorkspaceLayout: React.FC = () => {
                 </Button>
                 <Button type="submit">
                   Create Channel
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Add Workspace Modal */}
+      {showAddWorkspace && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-card border max-w-md w-full rounded-xl p-6 space-y-4 shadow-lg">
+            <h3 className="text-lg font-bold">Create New Workspace</h3>
+            <p className="text-sm text-muted-foreground">Set up a new workspace for your team or project.</p>
+            <form onSubmit={handleCreateWorkspace} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="ws-name">Workspace Name</Label>
+                <Input
+                  id="ws-name"
+                  required
+                  placeholder="e.g. Acme Corp"
+                  value={newWorkspaceName}
+                  onChange={(e) => setNewWorkspaceName(e.target.value)}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAddWorkspace(false)}
+                  disabled={creatingWorkspace}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={!newWorkspaceName || creatingWorkspace}>
+                  {creatingWorkspace ? 'Creating...' : 'Create Workspace'}
                 </Button>
               </div>
             </form>

@@ -1,8 +1,6 @@
 import { API_BASE_URL } from './api';
 
-type StreamNamespace = 'system' | 'chat' | 'calls';
-
-type Handler = (data: any) => void;
+type Handler = (data: any, fullFrame: any) => void;
 
 class WebSocketManager {
   private socket: WebSocket | null = null;
@@ -11,7 +9,7 @@ class WebSocketManager {
   private pingInterval: ReturnType<typeof setInterval> | null = null;
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   
-  private messageHandlers = new Map<string, Map<string, Set<Handler>>>();
+  private messageHandlers = new Map<string, Set<Handler>>();
   private stateListeners = new Set<(isConnected: boolean, isAuthenticated: boolean) => void>();
 
   private isConnected = false;
@@ -46,30 +44,32 @@ class WebSocketManager {
       if (this.pingInterval) clearInterval(this.pingInterval);
       this.pingInterval = setInterval(() => {
         if (this.socket?.readyState === WebSocket.OPEN) {
-          this.socket.send(JSON.stringify({ stream: 'system', payload: { type: 'ping' } }));
+          // Send ping according to new spec or just a simple ping type
+          this.socket.send(JSON.stringify({ type: 'system.ping' }));
         }
       }, 25000);
     };
 
     this.socket.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
-        const stream = data.stream || 'system';
-        const payload = data.payload || data;
-        const type = payload.type || payload.status;
+        const frame = JSON.parse(event.data);
+        const type = frame.type; // e.g. "chat.message_received", "presence.status_change"
 
-        if (stream === 'system' && type === 'auth_success') {
+        // Handle old structure for backwards compatibility if needed
+        let resolvedType = type;
+        if (!type && frame.stream) {
+          resolvedType = `${frame.stream}.${frame.payload?.type || frame.payload?.status}`;
+        }
+
+        if (resolvedType === 'system.auth_success') {
           this.isAuthenticated = true;
           this.notifyListeners();
         }
 
-        if (stream && type) {
-          const streamHandlers = this.messageHandlers.get(stream);
-          if (streamHandlers) {
-            const handlers = streamHandlers.get(type);
-            if (handlers) {
-              handlers.forEach((handler) => handler(payload.data || payload));
-            }
+        if (resolvedType) {
+          const handlers = this.messageHandlers.get(resolvedType);
+          if (handlers) {
+            handlers.forEach((handler) => handler(frame.payload || frame, frame));
           }
         }
       } catch (err) {
@@ -83,7 +83,6 @@ class WebSocketManager {
 
     this.socket.onerror = (err) => {
       console.error('WebSocket encountered an error', err);
-      // We don't need to close it here, onclose will fire automatically
     };
   }
 
@@ -98,11 +97,11 @@ class WebSocketManager {
     this.socket = null;
 
     if (this.intentionalDisconnect) {
-      return; // Do not reconnect if we intentionally disconnected
+      return; 
     }
 
-    if (code === 4003) {
-      console.log("WebSocket disconnected with 4003 (Forbidden). Will not reconnect automatically until re-authenticated.");
+    if (code === 4001 || code === 4003) {
+      console.log(`WebSocket disconnected with ${code} (Forbidden/Unauthorized). Will not reconnect automatically until re-authenticated.`);
       return;
     }
     
@@ -133,56 +132,56 @@ class WebSocketManager {
     this.notifyListeners();
   }
 
-  public subscribeToChannel(channelId: number) {
+  public subscribeToChannel(channelId: number | string, workspaceId?: string) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify({
-        stream: 'system',
-        payload: {
-          type: 'subscribe',
-          channel_id: channelId
-        }
+        type: 'room.subscribe',
+        workspace_id: workspaceId,
+        channel_id: channelId
       }));
     }
   }
 
-  public sendJsonMessage(stream: StreamNamespace, message: any) {
+  public unsubscribeFromChannel(channelId: number | string, workspaceId?: string) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify({
-        stream,
-        payload: message
+        type: 'room.unsubscribe',
+        workspace_id: workspaceId,
+        channel_id: channelId
+      }));
+    }
+  }
+
+  public sendJsonMessage(type: string, payload: any, workspaceId?: string, channelId?: string) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(JSON.stringify({
+        type,
+        workspace_id: workspaceId,
+        channel_id: channelId,
+        payload
       }));
     } else {
       console.warn('Cannot send websocket message: Socket is not open.');
     }
   }
 
-  public registerMessageHandler(stream: StreamNamespace, type: string, handler: Handler) {
-    if (!this.messageHandlers.has(stream)) {
-      this.messageHandlers.set(stream, new Map());
+  public registerMessageHandler(type: string, handler: Handler) {
+    if (!this.messageHandlers.has(type)) {
+      this.messageHandlers.set(type, new Set());
     }
-    const streamHandlers = this.messageHandlers.get(stream)!;
-    
-    if (!streamHandlers.has(type)) {
-      streamHandlers.set(type, new Set());
-    }
-    streamHandlers.get(type)!.add(handler);
+    const handlers = this.messageHandlers.get(type)!;
+    handlers.add(handler);
 
     return () => {
-      const sh = this.messageHandlers.get(stream);
-      if (sh) {
-        const th = sh.get(type);
-        if (th) {
-          th.delete(handler);
-          if (th.size === 0) sh.delete(type);
-        }
-        if (sh.size === 0) this.messageHandlers.delete(stream);
+      handlers.delete(handler);
+      if (handlers.size === 0) {
+        this.messageHandlers.delete(type);
       }
     };
   }
 
   public onStateChange(listener: (isConnected: boolean, isAuthenticated: boolean) => void) {
     this.stateListeners.add(listener);
-    // Notify immediately with current state
     listener(this.isConnected, this.isAuthenticated);
     return () => {
       this.stateListeners.delete(listener);

@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
 
 export const GoogleCallback: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { setUser } = useAuth();
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -23,13 +25,17 @@ export const GoogleCallback: React.FC = () => {
         const user = JSON.parse(userJson);
         
         localStorage.setItem('user_profile', JSON.stringify(user));
+        setUser(user);
         if (user.token) {
           localStorage.setItem('access_token', user.token);
         }
 
         toast.success('Successfully logged in with Google!');
-        navigate('/dashboard');
-        window.location.reload(); 
+        if (user.default_workspace_slug) {
+          navigate(`/w/${user.default_workspace_slug}`);
+        } else {
+          navigate('/onboarding');
+        }
       } catch (e) {
         console.error('Failed to parse user data from Google callback', e);
         toast.error('Google Sign-In failed.');
