@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useWebSocket } from './WebSocketContext';
 import { toast } from 'sonner';
 import { ringtoneManager } from '@/lib/audioUtils';
@@ -6,7 +6,7 @@ import { useWebRTC } from '@/hooks/useWebRTC';
 import { useAuth } from './AuthContext';
 
 interface CallContextType {
-  callStatus: 'idle' | 'calling' | 'ringing' | 'connected';
+  callStatus: 'idle' | 'calling' | 'ringing' | 'connecting' | 'connected' | 'reconnecting' | 'failed';
   incomingCall: { callerId: number; callerEmail: string; withVideo?: boolean; sdp: RTCSessionDescriptionInit } | null;
   activeTargetEmail: string | null;
   localStream: MediaStream | null;
@@ -29,6 +29,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const [incomingCall, setIncomingCall] = useState<{ callerId: number; callerEmail: string; withVideo?: boolean; sdp: RTCSessionDescriptionInit } | null>(null);
   const [activeTargetEmail, setActiveTargetEmail] = useState<string | null>(null);
+  const targetEmailRef = useRef<string | null>(null);
 
   const {
     callStatus,
@@ -67,22 +68,27 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     onIceCandidateRef.current = (candidate: RTCIceCandidate) => {
       // Send ICE candidate to peer
-      if (targetUserId) {
+      if (targetUserId !== null) {
         sendJsonMessage('calls', {
           type: 'ice_candidate',
           target_user_id: targetUserId,
+          candidate: candidate
+        });
+      } else if (targetEmailRef.current) {
+        sendJsonMessage('calls', {
+          type: 'ice_candidate',
+          receiver_email: targetEmailRef.current,
           candidate: candidate
         });
       }
     };
 
     onRenegotiationRef.current = (offer: RTCSessionDescriptionInit) => {
-      if (targetUserId) {
+      if (targetUserId !== null) {
         sendJsonMessage('calls', {
-          type: 'call_offer',
+          type: 'call_renegotiate',
           target_user_id: targetUserId,
-          sdp: offer,
-          with_video: true
+          sdp: offer
         });
       }
     };
@@ -140,7 +146,8 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 4. Implement Public Context Methods
   const startCall = async (_workspaceSlug: string, receiverEmail: string, withVideo: boolean = false) => {
     try {
-      const offer = await hookStartCall(0, withVideo);
+      targetEmailRef.current = receiverEmail;
+      const offer = await hookStartCall(null, withVideo);
       
       sendJsonMessage('calls', {
         type: 'call_offer',
@@ -156,6 +163,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
          toast.error(err.message || 'Failed to start call');
       }
       hookEndCall();
+      targetEmailRef.current = null;
       setActiveTargetEmail(null);
     }
   };
@@ -163,6 +171,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const acceptCall = async (withVideo: boolean = false) => {
     if (!incomingCall) return;
     try {
+      targetEmailRef.current = incomingCall.callerEmail;
       const answer = await hookAcceptCall(incomingCall.callerId, incomingCall.sdp, withVideo || incomingCall.withVideo);
       
       sendJsonMessage('calls', {
@@ -176,6 +185,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.error(err.message || 'Failed to accept call');
       hookEndCall();
       setIncomingCall(null);
+      targetEmailRef.current = null;
       setActiveTargetEmail(null);
     }
   };
@@ -189,6 +199,7 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     hookRejectCall();
     setIncomingCall(null);
+    targetEmailRef.current = null;
     setActiveTargetEmail(null);
   };
 
@@ -198,8 +209,14 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
         type: 'call_end',
         target_user_id: targetUserId
       });
+    } else if (targetEmailRef.current) {
+      sendJsonMessage('calls', {
+        type: 'call_end',
+        receiver_email: targetEmailRef.current
+      });
     }
     hookEndCall();
+    targetEmailRef.current = null;
     setActiveTargetEmail(null);
   };
 

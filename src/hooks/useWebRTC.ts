@@ -2,7 +2,10 @@ import { useState, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 
-export type CallStatus = 'idle' | 'calling' | 'ringing' | 'connected';
+export type CallStatus = 'idle' | 'calling' | 'ringing' | 'connecting' | 'connected' | 'reconnecting' | 'failed';
+
+let cachedIceServers: RTCIceServer[] | null = null;
+let lastIceServerFetchTime = 0;
 
 export interface UseWebRTCReturn {
   callStatus: CallStatus;
@@ -11,7 +14,7 @@ export interface UseWebRTCReturn {
   isMuted: boolean;
   isVideoEnabled: boolean;
   targetUserId: number | null;
-  startCall: (targetId: number, withVideo?: boolean) => Promise<RTCSessionDescriptionInit>;
+  startCall: (targetId: number | null, withVideo?: boolean) => Promise<RTCSessionDescriptionInit>;
   acceptCall: (targetId: number, offerSdp: RTCSessionDescriptionInit, withVideo?: boolean) => Promise<RTCSessionDescriptionInit>;
   rejectCall: () => void;
   endCall: () => void;
@@ -111,6 +114,17 @@ export const useWebRTC = (): UseWebRTCReturn => {
       });
     }
 
+    // Monitor connection state
+    pc.oniceconnectionstatechange = () => {
+      if (pc.iceConnectionState === 'disconnected') {
+        setCallStatus('reconnecting');
+      } else if (pc.iceConnectionState === 'failed') {
+        setCallStatus('failed');
+      } else if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        setCallStatus('connected');
+      }
+    };
+
     pcRef.current = pc;
     return pc;
   }, []);
@@ -128,34 +142,44 @@ export const useWebRTC = (): UseWebRTCReturn => {
     }
   }, []);
 
-  const startCall = async (targetId: number, withVideo: boolean = false): Promise<RTCSessionDescriptionInit> => {
+  const startCall = async (targetId: number | null, withVideo: boolean = false): Promise<RTCSessionDescriptionInit> => {
     cleanup();
     setTargetUserId(targetId);
     await requestMedia(withVideo);
-    
+
     let iceConfig: RTCConfiguration = DEFAULT_ICE_SERVERS;
     try {
-      const turnCreds = await api.getTurnCredentials();
-      const actualIceServers = turnCreds?.iceServers || turnCreds?.data?.iceServers;
-      
-      if (actualIceServers) {
-        const servers = Array.isArray(actualIceServers) 
-          ? actualIceServers 
-          : [actualIceServers];
-          
-        iceConfig = { 
-          iceServers: servers,
+      if (cachedIceServers && Date.now() - lastIceServerFetchTime < 1000 * 60 * 60 * 12) {
+        iceConfig = {
+          iceServers: cachedIceServers,
           iceTransportPolicy: 'relay'
         };
+      } else {
+        const turnCreds = await api.getTurnCredentials();
+        const actualIceServers = turnCreds?.iceServers || turnCreds?.data?.iceServers;
+  
+        if (actualIceServers) {
+          const servers = Array.isArray(actualIceServers)
+            ? actualIceServers
+            : [actualIceServers];
+            
+          cachedIceServers = servers;
+          lastIceServerFetchTime = Date.now();
+  
+          iceConfig = {
+            iceServers: servers,
+            iceTransportPolicy: 'relay'
+          };
+        }
       }
     } catch (e) {
       console.warn("Failed to fetch TURN credentials, falling back to STUN", e);
     }
-    
+
     const pc = createPeerConnection(iceConfig);
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    
+
     setCallStatus('calling');
     return offer;
   };
@@ -166,18 +190,28 @@ export const useWebRTC = (): UseWebRTCReturn => {
 
     let iceConfig: RTCConfiguration = DEFAULT_ICE_SERVERS;
     try {
-      const turnCreds = await api.getTurnCredentials();
-      const actualIceServers = turnCreds?.iceServers || turnCreds?.data?.iceServers;
-      
-      if (actualIceServers) {
-        const servers = Array.isArray(actualIceServers) 
-          ? actualIceServers 
-          : [actualIceServers];
-          
-        iceConfig = { 
-          iceServers: servers,
+      if (cachedIceServers && Date.now() - lastIceServerFetchTime < 1000 * 60 * 60 * 12) {
+        iceConfig = {
+          iceServers: cachedIceServers,
           iceTransportPolicy: 'relay'
         };
+      } else {
+        const turnCreds = await api.getTurnCredentials();
+        const actualIceServers = turnCreds?.iceServers || turnCreds?.data?.iceServers;
+  
+        if (actualIceServers) {
+          const servers = Array.isArray(actualIceServers)
+            ? actualIceServers
+            : [actualIceServers];
+            
+          cachedIceServers = servers;
+          lastIceServerFetchTime = Date.now();
+  
+          iceConfig = {
+            iceServers: servers,
+            iceTransportPolicy: 'relay'
+          };
+        }
       }
     } catch (e) {
       console.warn("Failed to fetch TURN credentials, falling back to STUN", e);
@@ -190,7 +224,7 @@ export const useWebRTC = (): UseWebRTCReturn => {
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
 
-    setCallStatus('connected');
+    setCallStatus('connecting');
     return answer;
   };
 
@@ -198,7 +232,7 @@ export const useWebRTC = (): UseWebRTCReturn => {
     if (pcRef.current) {
       await pcRef.current.setRemoteDescription(new RTCSessionDescription(answerSdp));
       await processIceQueue(pcRef.current);
-      setCallStatus('connected');
+      setCallStatus('connecting');
     }
   };
 
@@ -255,17 +289,17 @@ export const useWebRTC = (): UseWebRTCReturn => {
           await sender.replaceTrack(videoTrack);
         } else {
           pcRef.current.addTrack(videoTrack, localStreamRef.current);
-          
+
           // Renegotiate
           const offer = await pcRef.current.createOffer();
           await pcRef.current.setLocalDescription(offer);
-          
+
           if (targetUserId) {
             // Need to notify peer via the context, but the hook can't easily send the WS message itself.
             // Actually, we can just trigger a state change or callback.
             // But since ICE candidates and SDP are handled, if we just call the onRenegotiate callback...
             if (onRenegotiationRef.current) {
-               onRenegotiationRef.current(offer);
+              onRenegotiationRef.current(offer);
             }
           }
         }

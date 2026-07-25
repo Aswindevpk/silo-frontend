@@ -107,8 +107,12 @@ export const CallWidget: React.FC = () => {
               <h3 className="text-white font-medium truncate">
                 {activeTargetEmail || 'Unknown User'}
               </h3>
-              <p className="text-zinc-400 text-xs">
-                {callStatus === 'calling' ? 'Calling...' : (!(isVideoEnabled || (remoteStream && remoteStream.getVideoTracks().length > 0)) ? formatDuration(duration) : 'Connected')}
+              <p className={`text-xs ${callStatus === 'failed' ? 'text-red-400' : callStatus === 'reconnecting' ? 'text-yellow-400' : 'text-zinc-400'}`}>
+                {callStatus === 'calling' ? 'Calling...' : 
+                 callStatus === 'connecting' ? 'Connecting...' :
+                 callStatus === 'reconnecting' ? 'Reconnecting...' :
+                 callStatus === 'failed' ? 'Connection Failed' :
+                 (!(isVideoEnabled || (remoteStream && remoteStream.getVideoTracks().length > 0)) ? formatDuration(duration) : 'Connected')}
               </p>
             </div>
           </div>
