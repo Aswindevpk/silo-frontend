@@ -129,6 +129,7 @@ export interface Workspace {
   slug: string;
   created_at: string;
   created_by?: number;
+  is_default?: boolean;
 }
 
 export interface WorkspaceMember {
@@ -161,23 +162,40 @@ export interface Channel {
   name: string;
   description: string;
   is_private: boolean;
+  display_name?: string;
+  target_email?: string;
+  target_user_id?: string;
   created_at: string;
   created_by?: number;
 }
 
-export interface ChannelMessage {
-  id: string;
-  channel: number;
-  sender_email: string;
-  content: string;
-  created_at: string;
+export interface MessageReaction {
+  emoji: string;
+  count: number;
+  users: string[];
+  user_ids: string[];
 }
 
-export interface DirectMessage {
-  id: string;
-  sender_email: string;
-  receiver_email: string;
+export interface Message {
+  id: string | number;
+  channel?: number;
+  sender: {
+    id: string | number;
+    username: string;
+    email: string;
+  };
   content: string;
+  attachments?: any[];
+  link_previews?: any[];
+  mentions?: any[];
+  parent_message?: number | null;
+  reply_count?: number;
+  latest_reply_at?: string | null;
+  is_pinned?: boolean;
+  pinned_by?: number | null;
+  is_edited?: boolean;
+  is_deleted?: boolean;
+  reactions?: MessageReaction[];
   created_at: string;
 }
 
@@ -232,6 +250,13 @@ export const api = {
     return response.data;
   },
 
+  async getPresignedUrl(filename: string, contentType: string) {
+    const response = await apiClient.get('/api/v1/chats/presigned-url/', {
+      params: { filename, content_type: contentType }
+    });
+    return response.data;
+  },
+
   async resetPassword(data: ResetPasswordRequest) {
     const response = await apiClient.post('/api/v1/users/reset-password/', data);
     return response.data;
@@ -268,13 +293,33 @@ export const api = {
     return response.data;
   },
 
+  async listWorkspaceInvitations(slug: string): Promise<WorkspaceInvitation[]> {
+    const response = await apiClient.get(`/api/v1/workspaces/${slug}/invitations/`);
+    return response.data;
+  },
+
+  async revokeWorkspaceInvitation(slug: string, inviteId: number): Promise<void> {
+    const response = await apiClient.delete(`/api/v1/workspaces/${slug}/invitations/${inviteId}/`);
+    return response.data;
+  },
+
   async listWorkspaceMembers(slug: string): Promise<WorkspaceMember[]> {
     const response = await apiClient.get(`/api/v1/workspaces/${slug}/members/`);
     return response.data;
   },
 
+  async removeWorkspaceMember(slug: string, userId: number): Promise<void> {
+    const response = await apiClient.delete(`/api/v1/workspaces/${slug}/members/${userId}/`);
+    return response.data;
+  },
+
   async acceptWorkspaceInvitation(token: string): Promise<{ message: string }> {
     const response = await apiClient.post('/api/v1/workspaces/accept-invite/', { token });
+    return response.data;
+  },
+
+  async setDefaultWorkspace(slug: string): Promise<{ detail: string }> {
+    const response = await apiClient.post(`/api/v1/workspaces/${slug}/set-default/`);
     return response.data;
   },
 
@@ -294,6 +339,11 @@ export const api = {
     return response.data;
   },
 
+  async listDirectMessages(workspaceSlug: string): Promise<Channel[]> {
+    const response = await apiClient.get(`/api/v1/chats/workspaces/${workspaceSlug}/direct-messages/`);
+    return response.data;
+  },
+
   async createChannel(workspaceSlug: string, name: string, description: string, isPrivate: boolean): Promise<Channel> {
     const response = await apiClient.post(`/api/v1/chats/workspaces/${workspaceSlug}/channels/`, {
       name,
@@ -304,13 +354,19 @@ export const api = {
   },
 
   // Channel Messages Operations
-  async listChannelMessages(channelId: number): Promise<ChannelMessage[]> {
+  // Messaging Advanced Actions
+  async listMessages(channelId: number): Promise<Message[]> {
     const response = await apiClient.get(`/api/v1/chats/channels/${channelId}/messages/`);
     return response.data;
   },
 
-  async listDirectMessages(workspaceSlug: string, targetEmail: string): Promise<DirectMessage[]> {
-    const response = await apiClient.get(`/api/v1/chats/workspaces/${workspaceSlug}/direct-messages/${targetEmail}/`);
+  async listMessageThread(channelId: number, messageId: number | string): Promise<Message[]> {
+    const response = await apiClient.get(`/api/v1/chats/channels/${channelId}/messages/${messageId}/thread/`);
+    return response.data;
+  },
+
+  async getOrCreateDirectMessageChannel(workspaceSlug: string, targetEmail: string): Promise<Channel> {
+    const response = await apiClient.post(`/api/v1/chats/workspaces/${workspaceSlug}/direct-messages/${targetEmail}/`);
     return response.data;
   },
 

@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '../schemas/schemas';
 import { useLoginMutation, useResendEmailMutation } from '../hooks/queries';
+import { useAuth } from '@/context/AuthContext';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { toast } from 'sonner';
 
 export const LoginForm: React.FC = () => {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const loginMutation = useLoginMutation();
   const resendEmailMutation = useResendEmailMutation();
 
@@ -60,9 +62,18 @@ export const LoginForm: React.FC = () => {
 
   const onSubmit = async (values: LoginInput) => {
     loginMutation.mutate(values, {
-      onSuccess: () => {
+      onSuccess: (res: any) => {
         toast.success('Successfully logged in!');
-        navigate('/dashboard');
+        const user = res?.data?.user || res?.user;
+        
+        localStorage.setItem('user_profile', JSON.stringify(user));
+        setUser(user);
+
+        if (user?.default_workspace_slug) {
+          navigate(`/w/${user.default_workspace_slug}`);
+        } else {
+          navigate('/onboarding');
+        }
       },
       onError: (err: any) => {
         if (err.errors?.code === 'EMAIL_NOT_VERIFIED') {

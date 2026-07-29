@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 
-export type RightSidebarType = 'profile' | 'details' | 'custom' | null;
+export type RightSidebarType = 'profile' | 'details' | 'custom' | 'thread' | null;
 
 type RightSidebarContextType = {
   isOpen: boolean;

@@ -5,6 +5,7 @@ interface User {
   id: number;
   username: string;
   email: string;
+  default_workspace_slug?: string | null;
 }
 
 interface AuthContextType {

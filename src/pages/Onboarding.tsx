@@ -34,7 +34,7 @@ export const Onboarding: React.FC = () => {
       setAcceptingInvite(true);
       await api.acceptWorkspaceInvitation(inviteToken);
       toast.success('Invitation accepted successfully!');
-      navigate('/dashboard');
+      window.location.href = '/';
     } catch (err: any) {
       toast.error(err.message || 'Failed to accept invitation. The token may be expired.');
       // Remove token from URL so they can proceed with normal onboarding if failed

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { RootRedirect } from '@/components/RootRedirect';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -30,8 +31,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!requireAuth && isAuthenticated) {
-    // Redirect to dashboard if user is already authenticated
-    return <Navigate to="/dashboard" replace />;
+    // Redirect to default workspace or onboarding if user is already authenticated
+    return <RootRedirect />;
   }
 
   return <>{children}</>;
