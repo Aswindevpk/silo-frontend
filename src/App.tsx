@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import { WebSocketProvider } from '@/context/WebSocketContext';
 import { CallProvider } from '@/context/CallContext';
+import { ChannelSFUProvider } from '@/context/ChannelSFUContext';
 import { RightSidebarProvider } from '@/context/RightSidebarContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Login } from '@/pages/Login';
@@ -33,8 +34,9 @@ function App() {
         <AuthProvider>
           <WebSocketProvider>
             <CallProvider>
-              <RightSidebarProvider>
-                <Routes>
+              <ChannelSFUProvider>
+                <RightSidebarProvider>
+                  <Routes>
                   {/* Public Authentication Routes */}
                   <Route
                     path="/login"
@@ -121,7 +123,8 @@ function App() {
                 </Routes>
                 <CallWidget />
               </RightSidebarProvider>
-            </CallProvider>
+            </ChannelSFUProvider>
+          </CallProvider>
           </WebSocketProvider>
         </AuthProvider>
       </TooltipProvider>

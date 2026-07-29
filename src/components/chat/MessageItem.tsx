@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Message } from '@/lib/api';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ReactionPicker } from './ReactionPicker';
 import { MessageInput } from './MessageInput';
+import { useAuth } from '@/context/AuthContext';
 import { 
   MessageSquare, Pin, Pencil, Trash2, 
-  MoreHorizontal, File, Mic
+  MoreHorizontal, File, Mic, Phone, PhoneCall, PhoneMissed
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -23,8 +25,11 @@ interface MessageItemProps {
   onReact: (emoji: string) => void;
   onReply: () => void;
   onEdit: (content: string) => void;
-  onDelete: () => void;
+  onDelete?: () => void;
   onPin: () => void;
+  onJoinCall?: (channelId: string | number) => void;
+  onLeaveCall?: (channelId: string | number) => void;
+  activeCallChannelId?: string | number | null;
 }
 
 export const MessageItem: React.FC<MessageItemProps> = ({
@@ -35,10 +40,16 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   onReply,
   onEdit,
   onDelete,
-  onPin
+  onPin,
+  onJoinCall,
+  onLeaveCall,
+  activeCallChannelId
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const isMine = String(message.sender.id) === String(currentUserId);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  const isMine = user && message.sender.id === user.id;
   const timestamp = new Date(message.created_at);
 
   const handleEditSubmit = (newContent: string) => {
@@ -120,8 +131,6 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           <div className="mt-1 mb-2">
             <MessageInput 
               onSendMessage={handleEditSubmit} 
-              // We could populate initial content here if MessageInput accepts it.
-              // For now, it will start blank or we need to add initialContent to MessageInput
             />
             <div className="text-xs text-gray-400 mt-1">Press ESC to cancel</div>
           </div>
@@ -153,6 +162,72 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                       <Mic className="h-4 w-4" /> Voice Note
                     </div>
                     <audio controls src={att.url} className="w-full h-8" />
+                  </div>
+                ) : att.type === 'sfu_call' ? (
+                  <div className="w-[320px] rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+                    {att.is_active !== false ? (
+                      String(message.channel) === String(activeCallChannelId) ? (
+                        /* State B: User currently in this call */
+                        <div className="p-4 flex flex-col gap-3 border-l-4 border-l-teal-500">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 bg-teal-100 rounded-full flex items-center justify-center shrink-0">
+                              <PhoneCall className="h-5 w-5 text-teal-600 animate-pulse" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[15px] font-semibold text-gray-900">You're in the SyncUp</span>
+                              <span className="text-[13px] text-gray-500">Wait for your team to join!</span>
+                            </div>
+                          </div>
+                          <Button 
+                            className="w-full bg-red-50 hover:bg-red-100 text-red-600 rounded-lg h-10 font-medium"
+                            onClick={() => onLeaveCall?.(message.channel!)}
+                          >
+                            Leave
+                          </Button>
+                        </div>
+                      ) : (
+                        /* State A: Call is active, user is NOT in it */
+                        <div className="p-4 flex flex-col gap-3 border-l-4 border-l-teal-500">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 bg-teal-50 rounded-full flex items-center justify-center shrink-0">
+                              <Phone className="h-5 w-5 text-teal-600" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[15px] font-semibold text-gray-900">Join the SyncUp</span>
+                              <span className="text-[13px] text-gray-500">{message.sender.username} is waiting for others</span>
+                            </div>
+                          </div>
+                          <Button 
+                            className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-lg h-10 font-medium"
+                            onClick={() => {
+                              if (onJoinCall) {
+                                onJoinCall(message.channel!);
+                              } else {
+                                const workspaceSlug = window.location.pathname.split('/')[2];
+                                navigate(`/w/${workspaceSlug}/channel/${message.channel}/call?action=auto`);
+                              }
+                            }}
+                          >
+                            Join
+                          </Button>
+                        </div>
+                      )
+                    ) : (
+                      /* State C: Call ended */
+                      <div className="p-4 flex flex-col gap-3 bg-gray-50">
+                        <div className="flex items-center gap-3 opacity-70">
+                          <div className="h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center shrink-0">
+                            <PhoneMissed className="h-5 w-5 text-gray-500" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[15px] font-semibold text-gray-900">SyncUp Ended</span>
+                            <span className="text-[13px] text-gray-500">
+                              Lasted {Math.floor((att.duration_seconds || 0) / 60)}m {(att.duration_seconds || 0) % 60}s
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <a 

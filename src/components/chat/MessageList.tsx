@@ -12,6 +12,9 @@ interface MessageListProps {
   onEdit: (messageId: string | number, content: string) => void;
   onDelete: (messageId: string | number) => void;
   onPin: (messageId: string | number) => void;
+  onJoinCall?: (channelId: string | number) => void;
+  onLeaveCall?: (channelId: string | number) => void;
+  activeCallChannelId?: string | number | null;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
@@ -22,7 +25,10 @@ export const MessageList: React.FC<MessageListProps> = ({
   onReply,
   onEdit,
   onDelete,
-  onPin
+  onPin,
+  onJoinCall,
+  onLeaveCall,
+  activeCallChannelId
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +100,9 @@ export const MessageList: React.FC<MessageListProps> = ({
                 onEdit={(content) => onEdit(msg.id, content)}
                 onDelete={() => onDelete(msg.id)}
                 onPin={() => onPin(msg.id)}
+                onJoinCall={onJoinCall}
+                onLeaveCall={onLeaveCall}
+                activeCallChannelId={activeCallChannelId}
               />
             </div>
           );

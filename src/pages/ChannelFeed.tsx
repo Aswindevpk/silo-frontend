@@ -10,7 +10,11 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { MessageList } from '@/components/chat/MessageList';
 import { MessageInput } from '@/components/chat/MessageInput';
+import { PreCallModal } from '@/components/chat/PreCallModal';
 import { useRightSidebar } from '@/context/RightSidebarContext';
+import { useSFUContext } from '@/context/ChannelSFUContext';
+
+import { Phone } from 'lucide-react';
 
 export const ChannelFeed: React.FC = () => {
   const { workspaceSlug, channelId } = useParams<{ workspaceSlug: string; channelId: string }>();
@@ -19,6 +23,10 @@ export const ChannelFeed: React.FC = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { openSidebar } = useRightSidebar();
+  
+  const [showPreCallModal, setShowPreCallModal] = useState(false);
+  const [targetCallChannelId, setTargetCallChannelId] = useState<string | number | null>(null);
+  const { autoHuddle, leaveHuddle, activeChannelId } = useSFUContext();
   
   const parsedChannelId = parseInt(channelId || '0', 10);
   
@@ -119,6 +127,26 @@ export const ChannelFeed: React.FC = () => {
     }
   };
 
+  const handleJoinCallRequest = (joinChannelId?: string | number) => {
+    const alwaysShow = localStorage.getItem('syncup_always_show_preview') !== 'false';
+    const cid = joinChannelId || parsedChannelId;
+    if (alwaysShow) {
+      setTargetCallChannelId(cid);
+      setShowPreCallModal(true);
+    } else {
+      autoHuddle(cid).catch(e => toast.error(e.message || 'Failed to join call'));
+    }
+  };
+
+  const handleConfirmJoinCall = (_isMuted: boolean) => {
+    setShowPreCallModal(false);
+    if (targetCallChannelId) {
+      autoHuddle(targetCallChannelId).catch(e => toast.error(e.message || 'Failed to join call'));
+      // Note: We'd ideally toggle mute if `isMuted` is true, but useSFUContext doesn't accept initial mute yet.
+      // The toggleMute action can be applied after if needed.
+    }
+  };
+
   if (isLoading && !channel) {
     return (
       <div className="flex-grow flex items-center justify-center bg-white text-gray-500">
@@ -149,6 +177,14 @@ export const ChannelFeed: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1 text-gray-500">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 hover:bg-gray-100 rounded-md mr-1" 
+            onClick={() => handleJoinCallRequest(parsedChannelId)}
+          >
+            <Phone className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-gray-100 rounded-md">
             <Search className="h-4 w-4" />
           </Button>
@@ -157,7 +193,7 @@ export const ChannelFeed: React.FC = () => {
           </Button>
         </div>
       </div>
-
+      
       {/* Messages Area */}
       <MessageList 
         messages={messages} 
@@ -168,6 +204,9 @@ export const ChannelFeed: React.FC = () => {
         onEdit={sendEdit}
         onDelete={sendDelete}
         onPin={sendPin}
+        onJoinCall={handleJoinCallRequest}
+        onLeaveCall={leaveHuddle}
+        activeCallChannelId={activeChannelId}
       />
 
       {/* Input Area */}
@@ -177,6 +216,13 @@ export const ChannelFeed: React.FC = () => {
           onSendMessage={handleSendMessage} 
         />
       </div>
+
+      {showPreCallModal && (
+        <PreCallModal 
+          onJoin={handleConfirmJoinCall} 
+          onCancel={() => setShowPreCallModal(false)} 
+        />
+      )}
     </div>
   );
 };

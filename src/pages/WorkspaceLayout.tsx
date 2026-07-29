@@ -7,6 +7,7 @@ import { usePresence } from '@/hooks/usePresence';
 import { type WorkspaceMember } from '@/lib/api';
 
 import { RightSidebar } from '@/components/RightSidebar';
+import { SyncUpDock } from '@/components/chat/SyncUpDock';
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -716,6 +717,10 @@ export const WorkspaceLayout: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* SyncUp Audio Huddle UI */}
+      <SyncUpDock />
+      
     </div>
   );
 };
