@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { useChannelSFUHuddle } from '@/hooks/useChannelSFUHuddle';
+import { useChannelSFUHuddle } from '@/features/calls/hooks/useChannelSFUHuddle';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, PhoneOff, Users } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 export const ChannelCallRoom: React.FC = () => {
   const { workspaceSlug, channelId } = useParams<{ workspaceSlug: string; channelId: string }>();

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useSFUContext } from '@/context/ChannelSFUContext';
-import { useAuth } from '@/context/AuthContext';
+import { useSFUContext } from '@/features/calls/context/ChannelSFUContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, PhoneOff, Maximize2, Minimize2, Users, Settings, ScreenShare, Video, MessageSquare } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';

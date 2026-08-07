@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '../schemas/schemas';
 import { useLoginMutation, useResendEmailMutation } from '../hooks/queries';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -69,7 +69,10 @@ export const LoginForm: React.FC = () => {
         localStorage.setItem('user_profile', JSON.stringify(user));
         setUser(user);
 
-        if (user?.default_workspace_slug) {
+        const pendingToken = localStorage.getItem('pendingWorkspaceToken');
+        if (pendingToken) {
+          navigate(`/join-workspace?token=${pendingToken}`);
+        } else if (user?.default_workspace_slug) {
           navigate(`/w/${user.default_workspace_slug}`);
         } else {
           navigate('/onboarding');

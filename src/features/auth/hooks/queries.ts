@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { api, type RegisterRequest } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 export const useLoginMutation = () => {
   const { setUser } = useAuth();

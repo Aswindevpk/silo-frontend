@@ -1,10 +1,10 @@
 import React from 'react';
-import { useRightSidebar } from '@/context/RightSidebarContext';
+import { useRightSidebar } from '@/features/chat/context/RightSidebarContext';
 import { X, Mail, Clock, User as UserIcon, Search, Filter, Plus, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { ThreadDrawer } from './chat/ThreadDrawer';
+import { ThreadDrawer } from '@/features/chat/components/ThreadDrawer';
 
 export const RightSidebar: React.FC = () => {
   const { isOpen, type, data, closeSidebar } = useRightSidebar();

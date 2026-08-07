@@ -52,13 +52,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = async () => {
+    if (!user) return;
+    
+    // Clear state immediately to disconnect websockets and unmount protected components
+    localStorage.removeItem('user_profile');
+    localStorage.removeItem('access_token');
+    setUser(null);
+
     try {
       await api.logout();
     } catch (e) {
       console.error('Failed to hit backend logout', e);
-    } finally {
-      localStorage.removeItem('user_profile');
-      setUser(null);
     }
   };
 

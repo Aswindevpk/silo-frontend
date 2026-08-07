@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 export const GoogleCallback: React.FC = () => {
   const navigate = useNavigate();
@@ -31,7 +31,10 @@ export const GoogleCallback: React.FC = () => {
         }
 
         toast.success('Successfully logged in with Google!');
-        if (user.default_workspace_slug) {
+        const pendingToken = localStorage.getItem('pendingWorkspaceToken');
+        if (pendingToken) {
+          navigate(`/join-workspace?token=${pendingToken}`);
+        } else if (user.default_workspace_slug) {
           navigate(`/w/${user.default_workspace_slug}`);
         } else {
           navigate('/onboarding');
