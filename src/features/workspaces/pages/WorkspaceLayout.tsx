@@ -33,8 +33,6 @@ import {
   Plus,
   LogOut,
   Video,
-  Wifi,
-  WifiOff,
   ChevronDown,
   PanelLeftClose,
   LayoutDashboard,
@@ -574,7 +572,7 @@ export const WorkspaceLayout: React.FC = () => {
                     const btn = (
                       <div key={member.id} className="flex flex-col">
                         <button
-                          onClick={() => navigate(`/w/${workspaceSlug}/dm/${member.user.email}`)}
+                          onClick={() => navigate(`/w/${workspaceSlug}/dm/${member.user!.email}`)}
                           className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium transition-colors w-full text-muted-foreground hover:bg-muted hover:text-foreground ${isSidebarCollapsed ? 'justify-center' : ''}`}
                         >
                           <div className="relative shrink-0 flex items-center justify-center">

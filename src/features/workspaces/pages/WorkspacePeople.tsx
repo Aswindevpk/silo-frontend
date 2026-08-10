@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import {
-  Download,
   Search,
   Plus,
   MoreHorizontal,
@@ -36,7 +35,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
@@ -78,7 +76,7 @@ export const WorkspacePeople: React.FC = () => {
   // Mutations
   const inviteMutation = useMutation({
     mutationFn: (email: string) => api.inviteWorkspaceMember(workspaceSlug!, email, 'MEMBER'),
-    onSuccess: (data, email) => {
+    onSuccess: (_, email) => {
       toast.success(`Invitation sent to ${email}`);
       setInviteEmail('');
       setIsInviteModalOpen(false);
