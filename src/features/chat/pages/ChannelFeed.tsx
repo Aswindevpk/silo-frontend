@@ -3,16 +3,16 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type Channel, type Message } from '@/lib/api';
 import { useWebSocket } from '@/context/WebSocketContext';
-import { useSiloChatRoom } from '@/hooks/useSiloChatRoom';
+import { useSiloChatRoom } from '@/features/chat/hooks/useSiloChatRoom';
 import { Button } from '@/components/ui/button';
 import { Hash, Search, Layout } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import { toast } from 'sonner';
-import { MessageList } from '@/components/chat/MessageList';
-import { MessageInput } from '@/components/chat/MessageInput';
-import { PreCallModal } from '@/components/chat/PreCallModal';
-import { useRightSidebar } from '@/context/RightSidebarContext';
-import { useSFUContext } from '@/context/ChannelSFUContext';
+import { MessageList } from '@/features/chat/components/MessageList';
+import { MessageInput } from '@/features/chat/components/MessageInput';
+import { PreCallModal } from '@/features/chat/components/PreCallModal';
+import { useRightSidebar } from '@/features/chat/context/RightSidebarContext';
+import { useSFUContext } from '@/features/calls/context/ChannelSFUContext';
 
 import { Phone } from 'lucide-react';
 
@@ -169,11 +169,7 @@ export const ChannelFeed: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex items-center gap-4 ml-6 text-sm font-medium text-gray-500">
-             <button className="text-gray-900 border-b-2 border-gray-900 pb-4 pt-4">Chat</button>
-             <button className="hover:text-gray-900 pb-4 pt-4">Files</button>
-             <button className="hover:text-gray-900 pb-4 pt-4">Canvas</button>
-          </div>
+
         </div>
 
         <div className="flex items-center gap-1 text-gray-500">

@@ -1,29 +1,30 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider } from '@/features/auth/context/AuthContext';
 import { WebSocketProvider } from '@/context/WebSocketContext';
-import { CallProvider } from '@/context/CallContext';
-import { ChannelSFUProvider } from '@/context/ChannelSFUContext';
-import { RightSidebarProvider } from '@/context/RightSidebarContext';
+import { CallProvider } from '@/features/calls/context/CallContext';
+import { ChannelSFUProvider } from '@/features/calls/context/ChannelSFUContext';
+import { RightSidebarProvider } from '@/features/chat/context/RightSidebarContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { Login } from '@/pages/Login';
-import { Register } from '@/pages/Register';
-import { VerifyEmail } from '@/pages/VerifyEmail';
-import { ForgotPassword } from '@/pages/ForgotPassword';
-import { ResetPassword } from '@/pages/ResetPassword';
-import { Onboarding } from '@/pages/Onboarding';
-import { WorkspaceLayout } from '@/pages/WorkspaceLayout';
-import { ChannelFeed } from '@/pages/ChannelFeed';
-import { DirectMessageView } from '@/pages/DirectMessageView';
-import { DocumentCanvas } from '@/pages/DocumentCanvas';
-import { BillingSettings } from '@/pages/BillingSettings';
-import { WorkspacePeople } from '@/pages/WorkspacePeople';
-import { GoogleCallback } from '@/pages/GoogleCallback';
-import { CallWidget } from '@/components/CallWidget';
+import { Login } from '@/features/auth/pages/Login';
+import { Register } from '@/features/auth/pages/Register';
+import { VerifyEmail } from '@/features/auth/pages/VerifyEmail';
+import { ForgotPassword } from '@/features/auth/pages/ForgotPassword';
+import { ResetPassword } from '@/features/auth/pages/ResetPassword';
+import { Onboarding } from '@/features/workspaces/pages/Onboarding';
+import { WorkspaceLayout } from '@/features/workspaces/pages/WorkspaceLayout';
+import { ChannelFeed } from '@/features/chat/pages/ChannelFeed';
+import { DirectMessageView } from '@/features/chat/pages/DirectMessageView';
+import { DocumentCanvas } from '@/features/documents/pages/DocumentCanvas';
+import { BillingSettings } from '@/features/billing/pages/BillingSettings';
+import { WorkspacePeople } from '@/features/workspaces/pages/WorkspacePeople';
+import { GoogleCallback } from '@/features/auth/pages/GoogleCallback';
+import { CallWidget } from '@/features/calls/components/CallWidget';
 import { LandingPage } from '@/pages/LandingPage';
 import { Contact } from '@/pages/Contact';
 import { HowItWorks } from '@/pages/HowItWorks';
 import { Privacy } from '@/pages/Privacy';
 import { Terms } from '@/pages/Terms';
+import { JoinWorkspace } from '@/features/workspaces/pages/JoinWorkspace';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { RootRedirect } from '@/components/RootRedirect';
 
@@ -85,6 +86,11 @@ function App() {
                         <GoogleCallback />
                       </ProtectedRoute>
                     }
+                  />
+
+                  <Route
+                    path="/join-workspace"
+                    element={<JoinWorkspace />}
                   />
 
                   {/* Protected Routes */}

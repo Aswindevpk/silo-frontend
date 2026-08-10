@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Mic, MicOff, X, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import {
   Select,
   SelectContent,

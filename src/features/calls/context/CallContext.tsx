@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { useWebSocket } from './WebSocketContext';
+import { useWebSocket } from "@/context/WebSocketContext";
 import { toast } from 'sonner';
 import { ringtoneManager } from '@/lib/audioUtils';
-import { useWebRTC } from '@/hooks/useWebRTC';
-import { useAuth } from './AuthContext';
+import { useWebRTC } from '@/features/calls/hooks/useWebRTC';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 interface CallContextType {
   callStatus: 'idle' | 'calling' | 'ringing' | 'connecting' | 'connected' | 'reconnecting' | 'failed';

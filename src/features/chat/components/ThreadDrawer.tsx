@@ -1,14 +1,14 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { api } from '@/lib/api';
-import { useRightSidebar } from '@/context/RightSidebarContext';
+import { useRightSidebar } from '@/features/chat/context/RightSidebarContext';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { MessageItem } from './MessageItem'; // We will render the parent message here directly
-import { useAuth } from '@/context/AuthContext';
-import { useSiloChatRoom } from '@/hooks/useSiloChatRoom';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useSiloChatRoom } from '@/features/chat/hooks/useSiloChatRoom';
 import { useWebSocket } from '@/context/WebSocketContext';
 
 export const ThreadDrawer: React.FC = () => {

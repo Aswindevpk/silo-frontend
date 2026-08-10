@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ReactionPicker } from './ReactionPicker';
 import { MessageInput } from './MessageInput';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import { 
   MessageSquare, Pin, Pencil, Trash2, 
   MoreHorizontal, File, Mic, Phone, PhoneCall, PhoneMissed

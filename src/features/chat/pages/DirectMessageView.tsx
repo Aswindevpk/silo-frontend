@@ -2,16 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from '@/context/WebSocketContext';
-import { useAuth } from '@/context/AuthContext';
-import { useRightSidebar } from '@/context/RightSidebarContext';
-import { useCall } from '@/context/CallContext';
-import { useSiloChatRoom } from '@/hooks/useSiloChatRoom';
+import { useAuth } from '@/features/auth/context/AuthContext';
+import { useRightSidebar } from '@/features/chat/context/RightSidebarContext';
+import { useCall } from '@/features/calls/context/CallContext';
+import { useSiloChatRoom } from '@/features/chat/hooks/useSiloChatRoom';
 import { api, type Message } from '@/lib/api';
 import { Search, Layout, Video, Phone, User as UserIcon } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { MessageList } from '@/components/chat/MessageList';
-import { MessageInput } from '@/components/chat/MessageInput';
+import { MessageList } from '@/features/chat/components/MessageList';
+import { MessageInput } from '@/features/chat/components/MessageInput';
 
 export const DirectMessageView: React.FC = () => {
   const { workspaceSlug, targetEmail } = useParams<{ workspaceSlug: string; targetEmail: string }>();

@@ -134,26 +134,18 @@ export interface Workspace {
 
 export interface WorkspaceMember {
   id: number;
-  workspace: number;
+  workspace?: number;
   user: {
     id: number;
     username: string;
     email: string;
-  };
+  } | null;
+  email: string | null;
   role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'GUEST';
-  joined_at: string;
-}
-
-export interface WorkspaceInvitation {
-  id: number;
-  workspace: number;
-  email: string;
-  invited_by: number;
-  role: string;
-  token: string;
+  status: 'PENDING' | 'ACTIVE' | 'REVOKED';
   created_at: string;
-  expires_at: string;
-  is_accepted: boolean;
+  expires_at: string | null;
+  invited_by_email?: string;
 }
 
 export interface Channel {
@@ -288,18 +280,18 @@ export const api = {
     return response.data;
   },
 
-  async inviteWorkspaceMember(slug: string, email: string, role: string): Promise<WorkspaceInvitation> {
+  async inviteWorkspaceMember(slug: string, email: string, role: string): Promise<{ detail: string, token: string }> {
     const response = await apiClient.post(`/api/v1/workspaces/${slug}/invite/`, { email, role });
     return response.data;
   },
 
-  async listWorkspaceInvitations(slug: string): Promise<WorkspaceInvitation[]> {
-    const response = await apiClient.get(`/api/v1/workspaces/${slug}/invitations/`);
+  async revokeWorkspaceInvitation(slug: string, inviteId: number): Promise<void> {
+    const response = await apiClient.post(`/api/v1/workspaces/${slug}/invitations/${inviteId}/revoke/`);
     return response.data;
   },
 
-  async revokeWorkspaceInvitation(slug: string, inviteId: number): Promise<void> {
-    const response = await apiClient.delete(`/api/v1/workspaces/${slug}/invitations/${inviteId}/`);
+  async resendWorkspaceInvitation(slug: string, inviteId: number): Promise<void> {
+    const response = await apiClient.post(`/api/v1/workspaces/${slug}/invitations/${inviteId}/resend/`);
     return response.data;
   },
 

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useWebSocket } from '../context/WebSocketContext';
+import { useWebSocket } from "@/context/WebSocketContext";
 
 export function useSiloChatRoom(workspaceId: number, channelId: number) {
   const { sendJsonMessage } = useWebSocket();

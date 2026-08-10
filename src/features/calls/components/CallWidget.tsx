@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useCall } from '@/context/CallContext';
+import { useCall } from '@/features/calls/context/CallContext';
 import { PhoneOff, PhoneCall, Mic, MicOff, Video, VideoOff } from 'lucide-react';
 
 export const CallWidget: React.FC = () => {

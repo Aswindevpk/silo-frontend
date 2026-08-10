@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { api, type Channel, type Workspace } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
-import { useWebSocket } from '@/context/WebSocketContext';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import { usePresence } from '@/hooks/usePresence';
 import { type WorkspaceMember } from '@/lib/api';
 
 import { RightSidebar } from '@/components/RightSidebar';
-import { SyncUpDock } from '@/components/chat/SyncUpDock';
+import { SyncUpDock } from '@/features/chat/components/SyncUpDock';
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -30,7 +29,6 @@ import {
 
 import {
   Hash,
-  BookOpen,
   Settings,
   Plus,
   LogOut,
@@ -73,7 +71,6 @@ export const WorkspaceLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user } = useAuth();
-  const { isConnected, toggleConnection } = useWebSocket();
   const { isOnline } = usePresence(workspaceSlug);
 
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -314,15 +311,6 @@ export const WorkspaceLayout: React.FC = () => {
          </div>
 
          <div className="ml-auto flex items-center gap-4">
-            <button
-              onClick={toggleConnection}
-              className={`p-1.5 rounded-full flex items-center justify-center transition-colors ${
-                isConnected ? 'text-green-600 bg-green-50' : 'text-red-500 bg-red-50'
-              }`}
-              title={isConnected ? 'Connected' : 'Disconnected'}
-            >
-              {isConnected ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
-            </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -528,10 +516,10 @@ export const WorkspaceLayout: React.FC = () => {
                 </div>
              </div>
 
-             <Separator className="my-2 mx-4 w-auto opacity-50" />
+             {/* <Separator className="my-2 mx-4 w-auto opacity-50" /> */}
 
              {/* Docs Section */}
-             <div className="p-2">
+             {/* <div className="p-2">
                 {!isSidebarCollapsed && (
                   <div className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                     <span>Documentation</span>
@@ -564,7 +552,7 @@ export const WorkspaceLayout: React.FC = () => {
                     ) : btn;
                   })}
                 </div>
-             </div>
+             </div> */}
 
              <Separator className="my-2 mx-4 w-auto opacity-50" />
 
@@ -579,9 +567,9 @@ export const WorkspaceLayout: React.FC = () => {
                   </div>
                 )}
                 <div className="space-y-1">
-                  {members.map(member => {
-                    const isCurrentUser = member.user.email === user?.email;
-                    const isOnlineStatus = isOnline(member.user.id);
+                  {members.filter(m => m.status === 'ACTIVE' && m.user).map(member => {
+                    const isCurrentUser = member.user!.email === user?.email;
+                    const isOnlineStatus = isOnline(member.user!.id);
                     
                     const btn = (
                       <div key={member.id} className="flex flex-col">
@@ -592,14 +580,14 @@ export const WorkspaceLayout: React.FC = () => {
                           <div className="relative shrink-0 flex items-center justify-center">
                             <Avatar className="h-5 w-5 rounded-md">
                               <AvatarFallback className="rounded-md bg-muted-foreground/20 text-[10px] text-foreground font-semibold">
-                                {member.user.username.charAt(0).toUpperCase()}
+                                {member.user!.username.charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             {isOnlineStatus && (
                               <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background"></div>
                             )}
                           </div>
-                          {!isSidebarCollapsed && <span className="truncate flex-1 text-left">{member.user.username} {isCurrentUser && '— You'}</span>}
+                          {!isSidebarCollapsed && <span className="truncate flex-1 text-left">{member.user!.username} {isCurrentUser && '— You'}</span>}
                         </button>
                       </div>
                     );
@@ -607,7 +595,7 @@ export const WorkspaceLayout: React.FC = () => {
                     return isSidebarCollapsed ? (
                       <Tooltip key={member.id} delayDuration={0}>
                         <TooltipTrigger asChild>{btn}</TooltipTrigger>
-                        <TooltipContent side="right">{member.user.username}</TooltipContent>
+                        <TooltipContent side="right">{member.user!.username}</TooltipContent>
                       </Tooltip>
                     ) : btn;
                   })}

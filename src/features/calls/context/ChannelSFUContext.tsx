@@ -1,5 +1,5 @@
 import React, { createContext, useContext, type ReactNode } from 'react';
-import { useChannelSFUHuddle } from '@/hooks/useChannelSFUHuddle';
+import { useChannelSFUHuddle } from '@/features/calls/hooks/useChannelSFUHuddle';
 
 type SFUContextType = ReturnType<typeof useChannelSFUHuddle>;
 
