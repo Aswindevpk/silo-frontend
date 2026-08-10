@@ -63,7 +63,10 @@ export const BillingSettings: React.FC = () => {
             workspace: ws.id,
             user: { id: 1, username: 'owner', email: 'owner@example.com' },
             role: 'OWNER',
-            joined_at: new Date().toISOString()
+            email: 'owner@example.com',
+            status: 'ACTIVE',
+            created_at: new Date().toISOString(),
+            expires_at: null
           }
         ]);
       }
@@ -273,9 +276,9 @@ export const BillingSettings: React.FC = () => {
                   <div key={member.id} className="flex items-center justify-between p-2.5 rounded bg-white/40 border border-gray-200/40">
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-[#18181B]">
-                        @{member.user.username}
+                        @{member.user?.username}
                       </div>
-                      <div className="text-xs text-[#18181B]0 truncate">{member.user.email}</div>
+                      <div className="text-xs text-[#18181B]0 truncate">{member.user?.email}</div>
                     </div>
                     <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded font-mono uppercase">
                       {member.role}
