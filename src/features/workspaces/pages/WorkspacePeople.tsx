@@ -20,6 +20,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -63,6 +70,7 @@ export const WorkspacePeople: React.FC = () => {
   const queryClient = useQueryClient();
   
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('MEMBER');
   const [searchQuery, setSearchQuery] = useState('');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
@@ -75,7 +83,7 @@ export const WorkspacePeople: React.FC = () => {
 
   // Mutations
   const inviteMutation = useMutation({
-    mutationFn: (email: string) => api.inviteWorkspaceMember(workspaceSlug!, email, 'MEMBER'),
+    mutationFn: (email: string) => api.inviteWorkspaceMember(workspaceSlug!, email, inviteRole),
     onSuccess: (_, email) => {
       toast.success(`Invitation sent to ${email}`);
       setInviteEmail('');
@@ -356,17 +364,23 @@ export const WorkspacePeople: React.FC = () => {
                       <label className="text-sm font-medium text-gray-600">
                         Invite as
                       </label>
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
-                          <User className="h-6 w-6" />
-                        </div>
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-1 font-semibold text-gray-900 text-[15px]">
-                            Member <span className="text-gray-400 text-[10px] ml-1">▼</span>
-                          </div>
-                          <span className="text-sm text-gray-500">Can access all public items in your Workspace.</span>
-                        </div>
-                      </div>
+                      <Select value={inviteRole} onValueChange={setInviteRole}>
+                        <SelectTrigger className="h-11 rounded-xl border-gray-300 shadow-sm focus-visible:ring-indigo-500 focus-visible:border-indigo-500 bg-white">
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="OWNER">Owner</SelectItem>
+                          <SelectItem value="ADMIN">Admin</SelectItem>
+                          <SelectItem value="MEMBER">Member</SelectItem>
+                          <SelectItem value="GUEST">Guest</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <span className="text-sm text-gray-500 mt-1">
+                        {inviteRole === 'OWNER' && "Full administrative control of the Workspace."}
+                        {inviteRole === 'ADMIN' && "Can manage users and settings, but cannot delete the Workspace."}
+                        {inviteRole === 'MEMBER' && "Can access all public items in your Workspace."}
+                        {inviteRole === 'GUEST' && "Can only access specific items shared with them."}
+                      </span>
                     </div>
 
                     <DialogFooter className="mt-2 border-t border-gray-100 pt-5 sm:justify-end gap-3 flex items-center">
