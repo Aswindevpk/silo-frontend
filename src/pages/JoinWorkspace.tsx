@@ -4,18 +4,20 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 import { PublicLayout } from '@/components/PublicLayout';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { api } from '@/lib/api';
+import { useAcceptInviteMutation } from '@/features/workspaces/hooks/useWorkspace';
 
 export const JoinWorkspace: React.FC = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const navigate = useNavigate();
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const [joining, setJoining] = useState(false);
+
+  const acceptInviteMutation = useAcceptInviteMutation();
 
   useEffect(() => {
     if (loading) return;
-    
+
     if (token) {
       // Store token in localStorage so it persists across registration/email verification
       localStorage.setItem('pendingWorkspaceToken', token);
@@ -25,18 +27,22 @@ export const JoinWorkspace: React.FC = () => {
   const handleJoin = async () => {
     if (!token) return;
     setJoining(true);
-    try {
-      const res = await api.acceptWorkspaceInvitation(token);
-      toast.success((res as any).detail || res.message || "Successfully joined workspace!");
-      localStorage.removeItem('pendingWorkspaceToken');
-      // Try to navigate to the new workspace, or just go to root to auto-redirect
-      navigate('/');
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to join workspace. It may be expired or invalid.");
-      localStorage.removeItem('pendingWorkspaceToken');
-    } finally {
-      setJoining(false);
-    }
+    acceptInviteMutation.mutate(token, {
+      onSuccess: (res: any) => {
+        toast.success(res.detail || res.message || "Successfully joined workspace!");
+        localStorage.removeItem('pendingWorkspaceToken');
+        if (user?.default_workspace_slug) {
+          navigate(`/w/${user.default_workspace_slug}`);
+        } else {
+          navigate('/');
+        }
+      },
+      onError: (err: any) => {
+        toast.error(err.response?.data?.detail || "Failed to join workspace. It may be expired or invalid.");
+        localStorage.removeItem('pendingWorkspaceToken');
+        setJoining(false);
+      }
+    });
   };
 
   if (loading) {
@@ -86,8 +92,8 @@ export const JoinWorkspace: React.FC = () => {
         <div className="w-full max-w-md bg-white p-10 rounded-[2.5rem] shadow-[0_0_40px_rgba(0,0,0,0.05)] border border-gray-100 text-center">
           <h2 className="text-3xl font-bold font-['Outfit'] mb-4">Accept Invitation</h2>
           <p className="text-gray-500 mb-8">You are currently logged in. Click below to join the workspace.</p>
-          <Button 
-            onClick={handleJoin} 
+          <Button
+            onClick={handleJoin}
             className="w-full py-6 rounded-2xl bg-[#18181B] hover:bg-black font-bold text-lg"
             disabled={joining}
           >

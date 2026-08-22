@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, type LoginInput } from '../schemas/schemas';
-import { useLoginMutation, useResendEmailMutation } from '../hooks/queries';
+import { loginSchema, type LoginInput } from '../schemas/AuthSchema';
+import { useLoginMutation, useResendEmailMutation } from '../hooks/useAuth';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-// import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 export const LoginForm: React.FC = () => {
@@ -65,7 +64,7 @@ export const LoginForm: React.FC = () => {
       onSuccess: (res: any) => {
         toast.success('Successfully logged in!');
         const user = res?.data?.user || res?.user;
-        
+
         localStorage.setItem('user_profile', JSON.stringify(user));
         setUser(user);
 
@@ -161,17 +160,17 @@ export const LoginForm: React.FC = () => {
                 <p className="text-sm text-orange-800 text-center mb-3">
                   Your email is not verified. Please check your inbox or resend the link.
                 </p>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   className="w-full border-orange-200 text-orange-700 hover:bg-orange-100"
                   onClick={handleResend}
                   disabled={cooldownLeft > 0 || resendEmailMutation.isPending}
                 >
-                  {resendEmailMutation.isPending 
-                    ? 'Sending...' 
-                    : cooldownLeft > 0 
-                      ? `Resend available in ${cooldownLeft}s` 
+                  {resendEmailMutation.isPending
+                    ? 'Sending...'
+                    : cooldownLeft > 0
+                      ? `Resend available in ${cooldownLeft}s`
                       : 'Resend Verification Email'}
                 </Button>
               </div>

@@ -1,6 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { api } from '@/lib/api';
+import {
+  useWorkspaceMembersQuery,
+  useInviteMemberMutation,
+  useRemoveMemberMutation,
+  useRevokeInviteMutation,
+  useResendInviteMutation
+} from '@/features/workspaces/hooks/useWorkspace';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -36,7 +42,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -67,70 +72,36 @@ type UnifiedMember = {
 
 export const WorkspacePeople: React.FC = () => {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
-  const queryClient = useQueryClient();
-  
+
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('MEMBER');
   const [searchQuery, setSearchQuery] = useState('');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
-  // Data Fetching with React Query
-  const { data: members = [], isLoading: isLoadingMembers } = useQuery({
-    queryKey: ['workspace-members', workspaceSlug],
-    queryFn: () => workspaceSlug ? api.listWorkspaceMembers(workspaceSlug) : Promise.resolve([]),
-    enabled: !!workspaceSlug,
-  });
+  // Centralized Hooks
+  const { data: members = [], isLoading: isLoadingMembers } = useWorkspaceMembersQuery(workspaceSlug);
 
-  // Mutations
-  const inviteMutation = useMutation({
-    mutationFn: (email: string) => api.inviteWorkspaceMember(workspaceSlug!, email, inviteRole),
-    onSuccess: (_, email) => {
-      toast.success(`Invitation sent to ${email}`);
-      setInviteEmail('');
-      setIsInviteModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['workspace-members', workspaceSlug] });
-    },
-    onError: (err: any) => {
-      toast.error(err.message || 'Failed to send invite.');
-    },
-  });
-
-  const removeMemberMutation = useMutation({
-    mutationFn: (memberId: number) => api.removeWorkspaceMember(workspaceSlug!, memberId),
-    onSuccess: () => {
-      toast.success('Member removed from workspace.');
-      queryClient.invalidateQueries({ queryKey: ['workspace-members', workspaceSlug] });
-    },
-    onError: (err: any) => {
-      toast.error(err.message || 'Failed to remove member.');
-    },
-  });
-
-  const revokeInviteMutation = useMutation({
-    mutationFn: (inviteId: number) => api.revokeWorkspaceInvitation(workspaceSlug!, inviteId),
-    onSuccess: () => {
-      toast.success('Invitation revoked.');
-      queryClient.invalidateQueries({ queryKey: ['workspace-members', workspaceSlug] });
-    },
-    onError: (err: any) => {
-      toast.error(err.message || 'Failed to revoke invitation.');
-    },
-  });
-
-  const resendInviteMutation = useMutation({
-    mutationFn: (inviteId: number) => api.resendWorkspaceInvitation(workspaceSlug!, inviteId),
-    onSuccess: () => {
-      toast.success('Invitation resent successfully.');
-    },
-    onError: (err: any) => {
-      toast.error(err.message || 'Failed to resend invitation.');
-    },
-  });
+  const inviteMutation = useInviteMemberMutation(workspaceSlug);
+  const removeMemberMutation = useRemoveMemberMutation(workspaceSlug);
+  const revokeInviteMutation = useRevokeInviteMutation(workspaceSlug);
+  const resendInviteMutation = useResendInviteMutation(workspaceSlug);
 
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail || !workspaceSlug) return;
-    inviteMutation.mutate(inviteEmail);
+    inviteMutation.mutate(
+      { email: inviteEmail, role: inviteRole },
+      {
+        onSuccess: (_, variables) => {
+          toast.success(`Invitation sent to ${variables.email}`);
+          setInviteEmail('');
+          setIsInviteModalOpen(false);
+        },
+        onError: (err: any) => {
+          toast.error(err.message || 'Failed to send invite.');
+        },
+      }
+    );
   };
 
   const isLoading = isLoadingMembers;
@@ -138,7 +109,7 @@ export const WorkspacePeople: React.FC = () => {
   // Combine and format data for table
   const tableData = useMemo(() => {
     const unified: UnifiedMember[] = [];
-    
+
     members.forEach(member => {
       if (member.status === 'PENDING') {
         const email = member.email || '';
@@ -270,22 +241,22 @@ export const WorkspacePeople: React.FC = () => {
               <DropdownMenuContent align="end" className="w-40 rounded-xl">
                 {member.type === 'invitation' ? (
                   <>
-                    <DropdownMenuItem 
-                      onClick={() => resendInviteMutation.mutate(member.originalId)} 
+                    <DropdownMenuItem
+                      onClick={() => resendInviteMutation.mutate(member.originalId)}
                       className="cursor-pointer text-xs font-medium flex items-center gap-2"
                     >
                       <Send className="h-3.5 w-3.5" /> Resend invitation
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => revokeInviteMutation.mutate(member.originalId)} 
+                    <DropdownMenuItem
+                      onClick={() => revokeInviteMutation.mutate(member.originalId)}
                       className="text-red-600 focus:bg-red-50 focus:text-red-700 cursor-pointer text-xs font-medium flex items-center gap-2"
                     >
                       <MailX className="h-3.5 w-3.5" /> Cancel invite
                     </DropdownMenuItem>
                   </>
                 ) : (
-                  <DropdownMenuItem 
-                    onClick={() => removeMemberMutation.mutate(member.originalId)} 
+                  <DropdownMenuItem
+                    onClick={() => removeMemberMutation.mutate(member.originalId)}
                     className="text-red-600 focus:bg-red-50 focus:text-red-700 cursor-pointer text-xs font-medium flex items-center gap-2"
                   >
                     <Trash2 className="h-3.5 w-3.5" /> Remove User
@@ -328,7 +299,7 @@ export const WorkspacePeople: React.FC = () => {
                   className="pl-10 h-11 border-gray-200 w-full rounded-lg shadow-sm focus-visible:ring-1 focus-visible:ring-indigo-500 focus-visible:border-indigo-500 transition-all text-[15px]"
                 />
               </div>
-              
+
               <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -384,16 +355,16 @@ export const WorkspacePeople: React.FC = () => {
                     </div>
 
                     <DialogFooter className="mt-2 border-t border-gray-100 pt-5 sm:justify-end gap-3 flex items-center">
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
+                      <Button
+                        type="button"
+                        variant="ghost"
                         onClick={() => setIsInviteModalOpen(false)}
                         className="text-gray-600 hover:text-gray-900 font-medium px-4 h-11"
                       >
                         Cancel
                       </Button>
-                      <Button 
-                        type="submit" 
+                      <Button
+                        type="submit"
                         disabled={!inviteEmail || inviteMutation.isPending}
                         className="h-11 px-6 bg-[#18181B] text-white hover:bg-gray-800 rounded-xl font-medium shadow-md transition-all"
                       >
@@ -425,16 +396,16 @@ export const WorkspacePeople: React.FC = () => {
                 {table.getHeaderGroups().map(headerGroup => (
                   <TableRow key={headerGroup.id} className="hover:bg-transparent">
                     {headerGroup.headers.map(header => (
-                      <TableHead 
-                        key={header.id} 
+                      <TableHead
+                        key={header.id}
                         className={`text-xs font-semibold text-gray-500 uppercase tracking-wider ${header.id === 'name' ? 'pl-6' : ''}`}
                       >
                         {header.isPlaceholder
                           ? null
                           : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -442,7 +413,7 @@ export const WorkspacePeople: React.FC = () => {
               </TableHeader>
               <TableBody>
                 {/* Invite Row Placeholder */}
-                <TableRow 
+                <TableRow
                   className="hover:bg-[#F9F9FF] cursor-pointer group"
                   onClick={() => setIsInviteModalOpen(true)}
                 >
@@ -464,13 +435,13 @@ export const WorkspacePeople: React.FC = () => {
                   </TableRow>
                 ) : (
                   table.getRowModel().rows.map(row => (
-                    <TableRow 
-                      key={row.id} 
+                    <TableRow
+                      key={row.id}
                       className={`group transition-colors ${row.original.type === 'invitation' ? 'hover:bg-orange-50/30' : 'hover:bg-gray-50/80'}`}
                     >
                       {row.getVisibleCells().map(cell => (
-                        <TableCell 
-                          key={cell.id} 
+                        <TableCell
+                          key={cell.id}
                           className={cell.column.id === 'name' ? 'pl-6 py-4' : ''}
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
