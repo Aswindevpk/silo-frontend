@@ -1,7 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/features/auth/context/AuthContext';
 
 export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, user } = useAuth();
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#18181B] font-sans selection:bg-[#18181B] selection:text-white overflow-hidden flex flex-col">
       {/* Navigation */}
@@ -18,15 +21,26 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
         </div>
 
         <div className="flex items-center gap-4">
-          <Link to="/login" className="text-sm font-medium text-gray-600 hover:text-[#18181B] transition-colors hidden sm:block">
-            Login
-          </Link>
-          <Link
-            to="/register"
-            className="text-sm font-medium bg-[#18181B] hover:bg-black text-white px-5 py-2 rounded-full transition-all"
-          >
-            Sign up
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              to={user?.default_workspace_slug ? `/w/${user.default_workspace_slug}` : "/onboarding"}
+              className="text-sm font-medium bg-[#18181B] hover:bg-black text-white px-5 py-2 rounded-full transition-all"
+            >
+              Go to Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link to="/login" className="text-sm font-medium text-gray-600 hover:text-[#18181B] transition-colors hidden sm:block">
+                Login
+              </Link>
+              <Link
+                to="/register"
+                className="text-sm font-medium bg-[#18181B] hover:bg-black text-white px-5 py-2 rounded-full transition-all"
+              >
+                Sign up
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 

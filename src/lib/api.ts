@@ -269,14 +269,19 @@ export const api = {
     return response.data;
   },
 
+  async getProfile() {
+    const response = await apiClient.get('/api/v1/users/me/');
+    return response.data;
+  },
+
   // Workspace API Operations
   async listWorkspaces(): Promise<Workspace[]> {
     const response = await apiClient.get('/api/v1/workspaces/');
     return response.data;
   },
 
-  async createWorkspace(name: string, slug: string): Promise<Workspace> {
-    const response = await apiClient.post('/api/v1/workspaces/', { name, slug });
+  async createWorkspace(name: string): Promise<Workspace> {
+    const response = await apiClient.post('/api/v1/workspaces/', { name });
     return response.data;
   },
 
