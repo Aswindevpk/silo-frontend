@@ -13,7 +13,6 @@ import { MessageInput } from '@/features/chat/components/MessageInput';
 import { PreCallModal } from '@/features/chat/components/PreCallModal';
 import { useRightSidebar } from '@/features/chat/context/RightSidebarContext';
 import { useSFUContext } from '@/features/calls/context/ChannelSFUContext';
-
 import { Phone } from 'lucide-react';
 
 export const ChannelFeed: React.FC = () => {

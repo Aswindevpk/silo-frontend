@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { api, type WorkspaceSubscription, type WorkspaceMember } from '@/lib/api';
+import { type WorkspaceSubscription } from '@/lib/api';
+import {
+  useWorkspacesQuery,
+  useWorkspaceMembersQuery,
+  useToggleAutopayMutation,
+  useCheckoutSessionMutation,
+  useInviteMemberMutation
+} from '@/features/workspaces/hooks/useWorkspace';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -22,110 +29,85 @@ export const BillingSettings: React.FC = () => {
   const { workspaceSlug } = useParams<{ workspaceSlug: string }>();
 
   const [subscription, setSubscription] = useState<WorkspaceSubscription | null>(null);
-  const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [loading, setLoading] = useState(true);
 
   // Invite member state
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('MEMBER');
   const [inviting, setInviting] = useState(false);
 
-  const fetchBillingData = async () => {
-    if (!workspaceSlug) return;
-    try {
-      setLoading(true);
-      // Fetch workspaces list to find sub status or fetch from settings
-      const workspaces = await api.listWorkspaces();
-      const ws = workspaces.find((w) => w.slug === workspaceSlug);
-      
-      if (ws) {
-        // We'll mock a subscription fetch or fetch from toggle-autopay endpoint response
-        try {
-          const subDetails = await api.toggleAutopay(workspaceSlug);
-          // Toggle endpoints returns subscription, so we toggle back to restore state or initialize
-          // Let's toggle once or just use a default subscription payload
-          setSubscription(subDetails);
-        } catch (subErr) {
-          // If workspace endpoints fails, set a default Free Subscription object
-          setSubscription({
-            workspace: ws.id,
-            tier: 'FREE',
-            status: 'ACTIVE',
-            auto_renew: true
-          });
-        }
+  const { data: workspaces = [], isLoading: isLoadingWorkspaces } = useWorkspacesQuery();
+  const { data: members = [], isLoading: isLoadingMembers } = useWorkspaceMembersQuery(workspaceSlug);
 
-        // Fetch members list
-        // Note: For now, we will add the current user or mock member rows
-        setMembers([
-          {
-            id: 1,
-            workspace: ws.id,
-            user: { id: 1, username: 'owner', email: 'owner@example.com' },
-            role: 'OWNER',
-            email: 'owner@example.com',
-            status: 'ACTIVE',
-            created_at: new Date().toISOString(),
-            expires_at: null
-          }
-        ]);
-      }
-    } catch (err) {
-      toast.error('Failed to load membership status.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const toggleAutopayMutation = useToggleAutopayMutation(workspaceSlug);
+  const checkoutSessionMutation = useCheckoutSessionMutation(workspaceSlug);
+  const inviteMemberMutation = useInviteMemberMutation(workspaceSlug);
 
+  // Derive data synchronously instead of using effects
   useEffect(() => {
-    fetchBillingData();
-  }, [workspaceSlug]);
+    if (workspaces.length > 0 && workspaceSlug && !subscription) {
+      const ws = workspaces.find((w) => w.slug === workspaceSlug);
+      if (ws) {
+        // Assume mock sub for now unless we successfully fetch it
+        setSubscription({
+          workspace: ws.id,
+          tier: 'FREE',
+          status: 'ACTIVE',
+          auto_renew: true
+        });
+      }
+    }
+  }, [workspaces, workspaceSlug]);
 
   const handleToggleAutopay = async () => {
     if (!workspaceSlug || !subscription) return;
-    try {
-      const updatedSub = await api.toggleAutopay(workspaceSlug);
-      setSubscription(updatedSub);
-      toast.success(
-        `Automatic renewal (Autopay) is now ${updatedSub.auto_renew ? 'ON' : 'OFF'}.`
-      );
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to toggle autopay configuration.');
-    }
+    toggleAutopayMutation.mutate(undefined, {
+      onSuccess: (updatedSub) => {
+        setSubscription(updatedSub);
+        toast.success(`Automatic renewal (Autopay) is now ${updatedSub.auto_renew ? 'ON' : 'OFF'}.`);
+      },
+      onError: (err: any) => {
+        toast.error(err.message || 'Failed to toggle autopay configuration.');
+      }
+    });
   };
 
   const handleUpgradeSubscription = async () => {
     if (!workspaceSlug) return;
-    try {
-      toast.info('Redirecting to Stripe checkout portal...');
-      const session = await api.checkoutSession(workspaceSlug);
-      if (session && session.checkout_url) {
-        window.location.href = session.checkout_url;
-      } else {
-        // Mock fallback if Stripe redirect is bypassed
-        setSubscription((prev) => prev ? { ...prev, tier: 'PREMIUM', status: 'ACTIVE' } : null);
-        toast.success('Workspace subscription upgraded to PREMIUM!');
+    toast.info('Redirecting to Stripe checkout portal...');
+    checkoutSessionMutation.mutate(undefined, {
+      onSuccess: (session) => {
+        if (session && session.checkout_url) {
+          window.location.href = session.checkout_url;
+        } else {
+          setSubscription((prev) => prev ? { ...prev, tier: 'PREMIUM', status: 'ACTIVE' } : null);
+          toast.success('Workspace subscription upgraded to PREMIUM!');
+        }
+      },
+      onError: (err: any) => {
+        toast.error(err.message || 'Failed to initialize payment gateway.');
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to initialize payment gateway.');
-    }
+    });
   };
 
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!workspaceSlug || !inviteEmail) return;
 
-    try {
-      setInviting(true);
-      await api.inviteWorkspaceMember(workspaceSlug, inviteEmail, inviteRole);
-      toast.success(`Invitation successfully sent to ${inviteEmail}!`);
-      setInviteEmail('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to send workspace invitation.');
-    } finally {
-      setInviting(false);
-    }
+    setInviting(true);
+    inviteMemberMutation.mutate({ email: inviteEmail, role: inviteRole }, {
+      onSuccess: () => {
+        toast.success(`Invitation successfully sent to ${inviteEmail}!`);
+        setInviteEmail('');
+        setInviting(false);
+      },
+      onError: (err: any) => {
+        toast.error(err.message || 'Failed to send workspace invitation.');
+        setInviting(false);
+      }
+    });
   };
+
+  const loading = isLoadingWorkspaces || isLoadingMembers;
 
   if (loading) {
     return (
@@ -142,7 +124,7 @@ export const BillingSettings: React.FC = () => {
   return (
     <div className="flex-grow overflow-y-auto p-8 bg-white text-[#18181B]">
       <div className="max-w-4xl mx-auto space-y-8">
-        
+
         {/* Header Title */}
         <div>
           <h1 className="text-2xl font-bold text-[#18181B] flex items-center gap-2">

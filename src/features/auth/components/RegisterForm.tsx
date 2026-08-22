@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { registerSchema, type RegisterInput } from '../schemas/schemas';
-import { useRegisterMutation } from '../hooks/queries';
+import { registerSchema, type RegisterInput } from '../schemas/AuthSchema';
+import { useRegisterMutation } from '../hooks/useAuth';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 export const RegisterForm: React.FC = () => {
   const navigate = useNavigate();
   const registerMutation = useRegisterMutation();
-    const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
 
   const form = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
@@ -62,7 +62,7 @@ export const RegisterForm: React.FC = () => {
         <p className="text-gray-500 mb-6">
           We have sent a verification link to <strong className="text-black">{registeredEmail}</strong>. Please click the link to activate your account.
         </p>
-        
+
         <div className="flex flex-col gap-3">
           <Button className="w-full py-6 rounded-2xl bg-[#18181B] hover:bg-black font-bold text-lg" onClick={() => navigate('/login')}>
             Go to Sign In
