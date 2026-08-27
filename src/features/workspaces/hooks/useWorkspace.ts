@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, type Workspace, type WorkspaceMember } from '@/lib/api';
+import { api, type Workspace, type WorkspaceMember, type Channel } from '@/lib/api';
 
 // Queries
 export const useWorkspacesQuery = () => {
@@ -13,6 +13,14 @@ export const useWorkspaceMembersQuery = (workspaceSlug: string | undefined) => {
   return useQuery<WorkspaceMember[]>({
     queryKey: ['workspace-members', workspaceSlug],
     queryFn: () => workspaceSlug ? api.listWorkspaceMembers(workspaceSlug) : Promise.resolve([]),
+    enabled: !!workspaceSlug,
+  });
+};
+
+export const useWorkspaceChannelsQuery = (workspaceSlug: string | undefined) => {
+  return useQuery<Channel[]>({
+    queryKey: ['channels', workspaceSlug],
+    queryFn: () => workspaceSlug ? api.listChannels(workspaceSlug) : Promise.resolve([]),
     enabled: !!workspaceSlug,
   });
 };

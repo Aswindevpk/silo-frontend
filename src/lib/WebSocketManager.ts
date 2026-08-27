@@ -1,4 +1,3 @@
-import { API_BASE_URL } from './api';
 
 type Handler = (data: any, fullFrame: any) => void;
 
@@ -8,7 +7,7 @@ class WebSocketManager {
   private backoffCount = 0;
   private pingInterval: ReturnType<typeof setInterval> | null = null;
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-  
+
   private messageHandlers = new Map<string, Set<Handler>>();
   private stateListeners = new Set<(isConnected: boolean, isAuthenticated: boolean) => void>();
 
@@ -23,15 +22,10 @@ class WebSocketManager {
 
     this.intentionalDisconnect = false;
     this.isConnecting = true;
-    
-    let wsUrl = import.meta.env.VITE_WS_URL;
-    if (!wsUrl) {
-      wsUrl = API_BASE_URL.replace(/^http/, 'ws') + '/ws/users/';
-    }
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      wsUrl += `?token=${token}`;
-    }
+
+    // Use the current window host (e.g., localhost:5173) so the request goes through the Vite proxy
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = import.meta.env.VITE_WS_URL || `${protocol}//${window.location.host}/ws/users/`;
     this.socket = new WebSocket(wsUrl);
 
     this.socket.onopen = () => {
@@ -40,7 +34,7 @@ class WebSocketManager {
       this.backoffCount = 0;
       this.isConnected = true;
       this.notifyListeners();
-      
+
       if (this.pingInterval) clearInterval(this.pingInterval);
       this.pingInterval = setInterval(() => {
         if (this.socket?.readyState === WebSocket.OPEN) {
@@ -89,28 +83,28 @@ class WebSocketManager {
   private handleDisconnect(code: number) {
     this.isConnecting = false;
     if (this.pingInterval) clearInterval(this.pingInterval);
-    
+
     this.isConnected = false;
     this.isAuthenticated = false;
     this.notifyListeners();
-    
+
     this.socket = null;
 
     if (this.intentionalDisconnect) {
-      return; 
+      return;
     }
 
     if (code === 4001 || code === 4003) {
       console.log(`WebSocket disconnected with ${code} (Forbidden/Unauthorized). Will not reconnect automatically until re-authenticated.`);
       return;
     }
-    
+
     const maxBackoff = 30000;
     const baseDelay = 1000;
     const delay = Math.min(baseDelay * Math.pow(1.5, this.backoffCount), maxBackoff);
-    
+
     console.log(`WebSocket disconnected. Reconnecting in ${Math.round(delay / 1000)}s...`);
-    
+
     if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
     this.reconnectTimeout = setTimeout(() => {
       this.backoffCount += 1;
@@ -132,25 +126,6 @@ class WebSocketManager {
     this.notifyListeners();
   }
 
-  public subscribeToChannel(channelId: number | string, workspaceId?: string) {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify({
-        type: 'room.subscribe',
-        workspace_id: workspaceId,
-        channel_id: channelId
-      }));
-    }
-  }
-
-  public unsubscribeFromChannel(channelId: number | string, workspaceId?: string) {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify({
-        type: 'room.unsubscribe',
-        workspace_id: workspaceId,
-        channel_id: channelId
-      }));
-    }
-  }
 
   public sendJsonMessage(type: string, payload: any, workspaceId?: string, channelId?: string) {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {

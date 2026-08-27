@@ -1,36 +1,24 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { Message } from '@/lib/api';
 
 interface ChatState {
-  threads: Record<string, Message[]>;
+  activeChannelId: string | number | null;
 }
 
 const initialState: ChatState = {
-  threads: {},
+  activeChannelId: null,
 };
 
 export const chatSlice = createSlice({
   name: 'chat',
   initialState,
   reducers: {
-    setHistoricalMessages: (state, action: PayloadAction<{ threadId: string | number; messages: Message[] }>) => {
-      state.threads[String(action.payload.threadId)] = action.payload.messages;
-    },
-    addMessageToThread: (state, action: PayloadAction<{ threadId: string | number; message: Message }>) => {
-      const threadId = String(action.payload.threadId);
-      if (!state.threads[threadId]) {
-        state.threads[threadId] = [];
-      }
-      
-      const existingIds = new Set(state.threads[threadId].map(msg => msg.id));
-      if (!existingIds.has(action.payload.message.id)) {
-        state.threads[threadId].push(action.payload.message);
-      }
+    setActiveChannel: (state, action: PayloadAction<string | number | null>) => {
+      state.activeChannelId = action.payload;
     },
   },
 });
 
-export const { setHistoricalMessages, addMessageToThread } = chatSlice.actions;
+export const { setActiveChannel } = chatSlice.actions;
 
 export default chatSlice.reducer;

@@ -101,7 +101,7 @@ apiClient.interceptors.response.use(
 
       try {
         await axios.post(`${API_BASE_URL}/api/v1/users/token/refresh/`, {}, { withCredentials: true });
-        
+
         processQueue(null, 'refreshed');
         return apiClient(originalRequest);
       } catch (refreshError) {
@@ -166,6 +166,13 @@ export interface MessageReaction {
   count: number;
   users: string[];
   user_ids: string[];
+}
+
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
 }
 
 export interface Message {
@@ -352,8 +359,10 @@ export const api = {
 
   // Channel Messages Operations
   // Messaging Advanced Actions
-  async listMessages(channelId: number): Promise<Message[]> {
-    const response = await apiClient.get(`/api/v1/chats/channels/${channelId}/messages/`);
+  async listMessages(channelId: number, page: number = 1): Promise<PaginatedResponse<Message>> {
+    const response = await apiClient.get(`/api/v1/chats/channels/${channelId}/messages/`, {
+      params: { page }
+    });
     return response.data;
   },
 
