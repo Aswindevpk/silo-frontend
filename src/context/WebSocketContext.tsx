@@ -6,7 +6,6 @@ import { useAuth } from '@/features/auth/context/AuthContext';
 interface WebSocketContextType {
   isConnected: boolean;
   isAuthenticated: boolean;
-  subscribeToChannel: (channelId: number | string, workspaceId?: string) => void;
   sendJsonMessage: (type: string, payload: any, workspaceId?: string, channelId?: string) => void;
   registerMessageHandler: (type: string, handler: (data: any, frame: any) => void) => () => void;
   toggleConnection: () => void;
@@ -47,7 +46,6 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     <WebSocketContext.Provider value={{
       isConnected,
       isAuthenticated: isWsAuthenticated,
-      subscribeToChannel: wsManager.subscribeToChannel.bind(wsManager),
       sendJsonMessage: wsManager.sendJsonMessage.bind(wsManager),
       registerMessageHandler: wsManager.registerMessageHandler.bind(wsManager),
       toggleConnection: () => {

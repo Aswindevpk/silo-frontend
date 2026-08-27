@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useWebSocket } from '@/context/WebSocketContext';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import { useRightSidebar } from '@/features/chat/context/RightSidebarContext';
 import { useCall } from '@/features/calls/context/CallContext';
 import { useSiloChatRoom } from '@/features/chat/hooks/useSiloChatRoom';
-import { api, type Message } from '@/lib/api';
+import { useChannelMessages } from '@/features/chat/hooks/useChannelMessages';
+import { api } from '@/lib/api';
 import { Search, Layout, Video, Phone, User as UserIcon } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -16,11 +15,9 @@ import { MessageInput } from '@/features/chat/components/MessageInput';
 export const DirectMessageView: React.FC = () => {
   const { workspaceSlug, targetEmail } = useParams<{ workspaceSlug: string; targetEmail: string }>();
   const { user } = useAuth();
-  const { subscribeToChannel, registerMessageHandler } = useWebSocket();
   const { openProfile, openSidebar } = useRightSidebar();
   const { startCall } = useCall();
-  const queryClient = useQueryClient();
-  
+
   const [channelId, setChannelId] = useState<number | null>(null);
   const [workspaceId, setWorkspaceId] = useState<number | null>(null);
 
@@ -36,63 +33,19 @@ export const DirectMessageView: React.FC = () => {
         .then((channel) => {
           setChannelId(channel.id);
           setWorkspaceId(channel.workspace);
-          subscribeToChannel(channel.id);
         })
         .catch(console.error);
     }
   }, [workspaceSlug, targetEmail]);
 
-  // Query Messages
-  const { data: messages = [], isLoading } = useQuery({
-    queryKey: ['messages', channelId],
-    queryFn: () => api.listMessages(channelId!),
-    enabled: !!channelId,
-  });
-
-  useEffect(() => {
-    if (!channelId) return;
-
-    const cleanupMsg = registerMessageHandler('chat.message_received', (payload: any) => {
-      queryClient.setQueryData<Message[]>(['messages', channelId], (old = []) => {
-        if (old.some(m => String(m.id) === String(payload.id))) return old;
-        return [...old, payload];
-      });
-    });
-
-    const cleanupReaction = registerMessageHandler('chat.reaction_updated', (payload: any) => {
-      queryClient.setQueryData<Message[]>(['messages', channelId], (old = []) => {
-        return old.map(m => String(m.id) === String(payload.id) ? payload : m);
-      });
-    });
-
-    const cleanupEdit = registerMessageHandler('chat.message_edited', (payload: any) => {
-      queryClient.setQueryData<Message[]>(['messages', channelId], (old = []) => {
-        return old.map(m => String(m.id) === String(payload.id) ? payload : m);
-      });
-    });
-
-    const cleanupDelete = registerMessageHandler('chat.message_deleted', (payload: any) => {
-      queryClient.setQueryData<Message[]>(['messages', channelId], (old = []) => {
-        return old.map(m => String(m.id) === String(payload.id) ? payload : m);
-      });
-    });
-
-    const cleanupPin = registerMessageHandler('chat.message_pinned', (payload: any) => {
-      queryClient.setQueryData<Message[]>(['messages', channelId], (old = []) => {
-        return old.map(m => String(m.id) === String(payload.id) ? payload : m);
-      });
-    });
-
-    return () => {
-      cleanupMsg();
-      cleanupReaction();
-      cleanupEdit();
-      cleanupDelete();
-      cleanupPin();
-    };
-  }, [channelId, registerMessageHandler, queryClient]);
-
-
+  // Query Messages and Real-time updates via custom hook
+  const {
+    messages,
+    isLoading: isLoadingMessages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useChannelMessages(channelId ? String(channelId) : undefined, channelId || 0);
 
   const { sendChannelMessage, sendReaction, sendEdit, sendDelete, sendPin } = useSiloChatRoom(
     workspaceId || 0,
@@ -108,11 +61,11 @@ export const DirectMessageView: React.FC = () => {
   const handleReply = (messageId: string | number) => {
     const parentMsg = messages.find(m => m.id === messageId);
     if (parentMsg) {
-      openSidebar('thread', { 
-        channelId, 
+      openSidebar('thread', {
+        channelId,
         workspaceId: workspaceId || 0,
-        parentMessage: parentMsg, 
-        channelName: targetEmail?.split('@')[0] 
+        parentMessage: parentMsg,
+        channelName: targetEmail?.split('@')[0]
       });
     }
   };
@@ -127,7 +80,7 @@ export const DirectMessageView: React.FC = () => {
     }
   };
 
-  if (isLoading && !channelId) {
+  if (isLoadingMessages && !channelId) {
     return (
       <div className="flex-grow flex items-center justify-center bg-white text-gray-500">
         <div className="animate-spin h-6 w-6 border-2 border-gray-900 border-t-transparent rounded-full" />
@@ -147,18 +100,18 @@ export const DirectMessageView: React.FC = () => {
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-               <h2 className="font-bold text-gray-900 group-hover:underline text-[15px] font-['Outfit']">{targetEmail?.split('@')[0]}</h2>
+              <h2 className="font-bold text-gray-900 group-hover:underline text-[15px] font-['Outfit']">{targetEmail?.split('@')[0]}</h2>
             </div>
           </div>
-          
+
         </div>
 
         <div className="flex items-center gap-1 text-gray-500">
           {!isSelfChat && (
             <>
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 disabled={!channelId}
                 className="h-8 w-8 hover:bg-gray-100 rounded-md disabled:opacity-50"
                 onClick={() => {
@@ -169,9 +122,9 @@ export const DirectMessageView: React.FC = () => {
               >
                 <Phone className="h-4 w-4" />
               </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 disabled={!channelId}
                 className="h-8 w-8 hover:bg-gray-100 rounded-md disabled:opacity-50"
                 onClick={() => {
@@ -207,8 +160,8 @@ export const DirectMessageView: React.FC = () => {
           </div>
         </div>
       ) : (
-        <MessageList 
-          messages={messages} 
+        <MessageList
+          messages={messages}
           currentUserId={user?.id}
           channelName={targetEmail?.split('@')[0]}
           onReact={sendReaction}
@@ -216,15 +169,18 @@ export const DirectMessageView: React.FC = () => {
           onEdit={sendEdit}
           onDelete={sendDelete}
           onPin={sendPin}
+          fetchNextPage={fetchNextPage}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
         />
       )}
 
       {/* Input Area */}
       <div className="p-4 bg-white z-10 shrink-0">
-        <MessageInput 
+        <MessageInput
           disabled={!channelId}
-          placeholder={`Write to ${targetEmail?.split('@')[0]}`} 
-          onSendMessage={handleSendMessage} 
+          placeholder={`Write to ${targetEmail?.split('@')[0]}`}
+          onSendMessage={handleSendMessage}
         />
       </div>
     </div>

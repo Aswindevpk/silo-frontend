@@ -1,5 +1,4 @@
 import type { Middleware } from '@reduxjs/toolkit';
-import { addMessageToThread } from '../slices/chatSlice';
 import { receiveNotification } from '../slices/notificationSlice';
 import { receiveCallSignal } from '../slices/callSlice';
 import { userJoined, userLeft } from '../slices/presenceSlice';
@@ -13,13 +12,8 @@ export const websocketMiddleware: Middleware = (store) => (next) => (action: any
     switch (eventType) {
       case 'NEW_MESSAGE':
       case 'new_reply':
-        // Handle payload format from Django consumer or sample payload
-        const threadId = data.payload?.topic_id || data.payload?.thread_id || data.payload?.data?.topic;
-        const message = data.payload?.message || data.payload?.data;
-        
-        if (threadId && message) {
-          store.dispatch(addMessageToThread({ threadId, message }));
-        }
+        // Message caching is now handled exclusively by TanStack Query via the useChannelMessages hook.
+        // We only listen for ephemeral websocket events here.
         break;
 
       case 'NOTIFICATION':
