@@ -35,10 +35,11 @@ export const usePresence = (_workspaceSlug?: string) => {
   
   useEffect(() => {
     const unsubscribe = registerMessageHandler('presence.status_change', (data: any) => {
+      const userIdNum = Number(data.user_id);
       if (data.status === 'online') {
-        dispatch(userJoined(data.user_id));
+        dispatch(userJoined(userIdNum));
       } else if (data.status === 'offline') {
-        dispatch(userLeft(data.user_id));
+        dispatch(userLeft(userIdNum));
       }
     });
 

@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, type Channel, type Message } from '@/lib/api';
-import { useWebSocket } from '@/context/WebSocketContext';
 import { useSiloChatRoom } from '@/features/chat/hooks/useSiloChatRoom';
+import { useChannelMessages } from '@/features/chat/hooks/useChannelMessages';
+import { useWorkspaceChannelsQuery } from '@/features/workspaces/hooks/useWorkspace';
 import { Button } from '@/components/ui/button';
 import { Hash, Search, Layout } from 'lucide-react';
 import { useAuth } from '@/features/auth/context/AuthContext';
@@ -17,116 +16,61 @@ import { Phone } from 'lucide-react';
 
 export const ChannelFeed: React.FC = () => {
   const { workspaceSlug, channelId } = useParams<{ workspaceSlug: string; channelId: string }>();
-  const { subscribeToChannel, registerMessageHandler } = useWebSocket();
-  const [channel, setChannel] = useState<Channel | null>(null);
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const { openSidebar } = useRightSidebar();
-  
+
   const [showPreCallModal, setShowPreCallModal] = useState(false);
   const [targetCallChannelId, setTargetCallChannelId] = useState<string | number | null>(null);
   const { autoHuddle, leaveHuddle, activeChannelId } = useSFUContext();
-  
+
   const parsedChannelId = parseInt(channelId || '0', 10);
-  
+
+  // Fetch Channel Details
+  const { data: channels = [], isLoading: isLoadingChannels, isError: isErrorChannels } = useWorkspaceChannelsQuery(workspaceSlug);
+
+  const channel = channels.find((c) => c.id === parsedChannelId);
+
   const { sendChannelMessage, sendReaction, sendEdit, sendDelete, sendPin } = useSiloChatRoom(
     channel?.workspace || 0,
     parsedChannelId
   );
 
-  // Fetch Channel Details
   useEffect(() => {
-    const fetchChannel = async () => {
-      if (!channelId || !workspaceSlug) return;
-      try {
-        const chList = await api.listChannels(workspaceSlug);
-        const ch = chList.find((c) => c.id === parsedChannelId);
-        if (ch) {
-          setChannel(ch);
-          subscribeToChannel(parsedChannelId);
-        } else {
-          toast.error('Channel not found.');
-        }
-      } catch (err) {
-        toast.error('Failed to load channel details.');
-      }
-    };
-    fetchChannel();
-  }, [channelId, workspaceSlug]);
+    if (isErrorChannels) {
+      toast.error('Failed to load channel details.');
+    }
+  }, [isErrorChannels]);
 
-  // Query Messages
-  const { data: messages = [], isLoading } = useQuery({
-    queryKey: ['messages', parsedChannelId],
-    queryFn: () => api.listMessages(parsedChannelId),
-    enabled: !!parsedChannelId,
-  });
-
-  // Websocket listener for incoming real-time updates
-  useEffect(() => {
-    if (!channelId) return;
-    const cleanupMsg = registerMessageHandler('chat.message_received', (payload: any) => {
-      queryClient.setQueryData<Message[]>(['messages', parsedChannelId], (old = []) => {
-        // Prevent duplicates
-        if (old.some(m => String(m.id) === String(payload.id))) return old;
-        return [...old, payload];
-      });
-    });
-
-    const cleanupReaction = registerMessageHandler('chat.reaction_updated', (payload: any) => {
-      queryClient.setQueryData<Message[]>(['messages', parsedChannelId], (old = []) => {
-        return old.map(m => String(m.id) === String(payload.id) ? payload : m);
-      });
-    });
-
-    const cleanupEdit = registerMessageHandler('chat.message_edited', (payload: any) => {
-      queryClient.setQueryData<Message[]>(['messages', parsedChannelId], (old = []) => {
-        return old.map(m => String(m.id) === String(payload.id) ? payload : m);
-      });
-    });
-
-    const cleanupDelete = registerMessageHandler('chat.message_deleted', (payload: any) => {
-      queryClient.setQueryData<Message[]>(['messages', parsedChannelId], (old = []) => {
-        return old.map(m => String(m.id) === String(payload.id) ? payload : m);
-      });
-    });
-
-    const cleanupPin = registerMessageHandler('chat.message_pinned', (payload: any) => {
-      queryClient.setQueryData<Message[]>(['messages', parsedChannelId], (old = []) => {
-        return old.map(m => String(m.id) === String(payload.id) ? payload : m);
-      });
-    });
-
-    return () => {
-      cleanupMsg();
-      cleanupReaction();
-      cleanupEdit();
-      cleanupDelete();
-      cleanupPin();
-    };
-  }, [channelId, registerMessageHandler, queryClient]);
-
+  // Query Messages and Real-time updates via custom hook
+  const {
+    messages,
+    isLoading: isLoadingMessages,
+    isError: isErrorMessages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useChannelMessages(channelId, parsedChannelId);
 
 
   // Actions
-  const handleSendMessage = (content: string, attachments: any[] = []) => {
+  const handleSendMessage = useCallback((content: string, attachments: any[] = []) => {
     sendChannelMessage(content, attachments);
-  };
+  }, [sendChannelMessage]);
 
 
-
-  const handleReply = (messageId: string | number) => {
+  const handleReply = useCallback((messageId: string | number) => {
     const parentMsg = messages.find(m => m.id === messageId);
     if (parentMsg) {
-      openSidebar('thread', { 
-        channelId: parsedChannelId, 
+      openSidebar('thread', {
+        channelId: parsedChannelId,
         workspaceId: channel?.workspace || 0,
-        parentMessage: parentMsg, 
-        channelName: channel?.name 
+        parentMessage: parentMsg,
+        channelName: channel?.name
       });
     }
-  };
+  }, [messages, parsedChannelId, channel, openSidebar]);
 
-  const handleJoinCallRequest = (joinChannelId?: string | number) => {
+  const handleJoinCallRequest = useCallback((joinChannelId?: string | number) => {
     const alwaysShow = localStorage.getItem('syncup_always_show_preview') !== 'false';
     const cid = joinChannelId || parsedChannelId;
     if (alwaysShow) {
@@ -135,21 +79,30 @@ export const ChannelFeed: React.FC = () => {
     } else {
       autoHuddle(cid).catch(e => toast.error(e.message || 'Failed to join call'));
     }
-  };
+  }, [parsedChannelId, autoHuddle]);
 
-  const handleConfirmJoinCall = (_isMuted: boolean) => {
+  const handleConfirmJoinCall = useCallback((_isMuted: boolean) => {
     setShowPreCallModal(false);
     if (targetCallChannelId) {
       autoHuddle(targetCallChannelId).catch(e => toast.error(e.message || 'Failed to join call'));
       // Note: We'd ideally toggle mute if `isMuted` is true, but useSFUContext doesn't accept initial mute yet.
       // The toggleMute action can be applied after if needed.
     }
-  };
+  }, [targetCallChannelId, autoHuddle]);
 
-  if (isLoading && !channel) {
+  if ((isLoadingMessages || isLoadingChannels) && !channel) {
     return (
       <div className="flex-grow flex items-center justify-center bg-white text-gray-500">
         <div className="animate-spin h-6 w-6 border-2 border-gray-900 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (isErrorMessages) {
+    return (
+      <div className="flex-grow flex flex-col items-center justify-center bg-white text-gray-500">
+        <p className="mb-4">Failed to load messages.</p>
+        <Button variant="outline" onClick={() => window.location.reload()}>Retry</Button>
       </div>
     );
   }
@@ -164,18 +117,18 @@ export const ChannelFeed: React.FC = () => {
               <Hash className="h-4 w-4 text-gray-600" />
             </div>
             <div className="flex flex-col">
-               <h2 className="font-bold text-gray-900 group-hover:underline text-[15px] font-['Outfit']">{channel?.name}</h2>
+              <h2 className="font-bold text-gray-900 group-hover:underline text-[15px] font-['Outfit']">{channel?.name}</h2>
             </div>
           </div>
-          
+
 
         </div>
 
         <div className="flex items-center gap-1 text-gray-500">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 hover:bg-gray-100 rounded-md mr-1" 
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-gray-100 rounded-md mr-1"
             onClick={() => handleJoinCallRequest(parsedChannelId)}
           >
             <Phone className="h-4 w-4" />
@@ -188,10 +141,10 @@ export const ChannelFeed: React.FC = () => {
           </Button>
         </div>
       </div>
-      
+
       {/* Messages Area */}
-      <MessageList 
-        messages={messages} 
+      <MessageList
+        messages={messages}
         currentUserId={user?.id}
         channelName={channel?.name}
         onReact={sendReaction}
@@ -202,20 +155,23 @@ export const ChannelFeed: React.FC = () => {
         onJoinCall={handleJoinCallRequest}
         onLeaveCall={leaveHuddle}
         activeCallChannelId={activeChannelId}
+        fetchNextPage={fetchNextPage}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
       />
 
       {/* Input Area */}
       <div className="p-4 bg-white z-10 shrink-0">
-        <MessageInput 
-          placeholder={`Message #${channel?.name}`} 
-          onSendMessage={handleSendMessage} 
+        <MessageInput
+          placeholder={`Message #${channel?.name}`}
+          onSendMessage={handleSendMessage}
         />
       </div>
 
       {showPreCallModal && (
-        <PreCallModal 
-          onJoin={handleConfirmJoinCall} 
-          onCancel={() => setShowPreCallModal(false)} 
+        <PreCallModal
+          onJoin={handleConfirmJoinCall}
+          onCancel={() => setShowPreCallModal(false)}
         />
       )}
     </div>

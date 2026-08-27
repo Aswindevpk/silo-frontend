@@ -15,6 +15,9 @@ interface MessageListProps {
   onJoinCall?: (channelId: string | number) => void;
   onLeaveCall?: (channelId: string | number) => void;
   activeCallChannelId?: string | number | null;
+  fetchNextPage?: () => void;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
@@ -28,7 +31,10 @@ export const MessageList: React.FC<MessageListProps> = ({
   onPin,
   onJoinCall,
   onLeaveCall,
-  activeCallChannelId
+  activeCallChannelId,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -48,6 +54,18 @@ export const MessageList: React.FC<MessageListProps> = ({
     }
   }, [messages.length, virtualizer]);
 
+  // Handle infinite scroll up
+  const virtualItems = virtualizer.getVirtualItems();
+  useEffect(() => {
+    if (!virtualItems.length) return;
+    const firstVisibleItem = virtualItems[0];
+    // If we're showing the very first item (oldest message currently loaded) 
+    // and we have more to fetch, trigger fetchNextPage
+    if (firstVisibleItem.index === 0 && hasNextPage && !isFetchingNextPage && fetchNextPage) {
+      fetchNextPage();
+    }
+  }, [virtualItems, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   return (
     <div 
       ref={parentRef} 
@@ -60,13 +78,19 @@ export const MessageList: React.FC<MessageListProps> = ({
           position: 'relative',
         }}
       >
-        {messages.length === 0 && (
+        {messages.length === 0 && !isFetchingNextPage && (
           <div className="absolute inset-0 m-auto text-center text-gray-500 text-sm mt-10 h-10">
             No messages yet. Start the conversation{channelName ? ` in #${channelName}` : ''}!
           </div>
         )}
+
+        {isFetchingNextPage && (
+          <div className="text-center text-gray-400 text-xs py-2 w-full absolute top-0">
+            Loading older messages...
+          </div>
+        )}
         
-        {virtualizer.getVirtualItems().map((virtualItem) => {
+        {virtualItems.map((virtualItem) => {
           const msg = messages[virtualItem.index];
           
           // Determine if compact (same sender as previous message and within 2 mins)
